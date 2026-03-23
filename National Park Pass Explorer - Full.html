@@ -1,0 +1,2000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+   ______                            __
+  / ____/___  ____ ___  ____  __  __/ /____  _____
+ / /   / __ \/ __ `__ \/ __ \/ / / / __/ _ \/ ___/
+/ /___/ /_/ / / / / / / /_/ / /_/ / /_/  __/ /
+\____/\____/_/ /_/ /_/ .___/\__,_/\__/\___/_/
+                    /_/
+        Created with Perplexity Computer
+        https://www.perplexity.ai/computer
+-->
+<meta name="generator" content="Perplexity Computer">
+<meta name="author" content="Perplexity Computer">
+<meta property="og:see_also" content="https://www.perplexity.ai/computer">
+<link rel="author" href="https://www.perplexity.ai/computer">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Park Pass Explorer — National Parks & Federal Recreation Sites</title>
+<meta name="description" content="Interactive map of all NPS sites and federal recreation areas in the continental US — including where the America the Beautiful pass covers entrance fees and free parks.">
+
+<link href="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css" rel="stylesheet" />
+<script src="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display&display=swap" rel="stylesheet">
+
+<style>
+/* ===== DESIGN TOKENS ===== */
+:root {
+  --text-xs:   clamp(0.75rem,  0.7rem  + 0.25vw, 0.875rem);
+  --text-sm:   clamp(0.875rem, 0.8rem  + 0.35vw, 1rem);
+  --text-base: clamp(1rem,     0.95rem + 0.25vw, 1.125rem);
+  --text-lg:   clamp(1.125rem, 1rem    + 0.75vw, 1.5rem);
+  --text-xl:   clamp(1.5rem,   1.2rem  + 1.25vw, 2.25rem);
+  --text-2xl:  clamp(2rem,     1.2rem  + 2.5vw,  3.5rem);
+
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+
+  --font-body: 'DM Sans', 'Helvetica Neue', sans-serif;
+  --font-display: 'DM Serif Display', Georgia, serif;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-full: 9999px;
+
+  --transition-interactive: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ===== NATURE-INSPIRED PALETTE ===== */
+:root, [data-theme="light"] {
+  --color-bg:             #f5f3ee;
+  --color-surface:        #ffffff;
+  --color-surface-2:      #faf9f6;
+  --color-surface-offset: #ece9e1;
+  --color-divider:        #ddd9d0;
+  --color-border:         #ccc8be;
+  --color-text:           #1f2617;
+  --color-text-muted:     #6b705c;
+  --color-text-faint:     #a3a18e;
+  --color-text-inverse:   #f5f3ee;
+  --color-primary:        #2d6a4f;
+  --color-primary-hover:  #1b4332;
+  --color-primary-active: #143025;
+  --color-primary-light:  #d8f3dc;
+  --color-accent:         #d4a373;
+  --color-accent-hover:   #b5854f;
+
+  --color-badge-nps:      #2d6a4f;
+  --color-badge-usfws:    #d4870e;
+  --color-badge-usfs:     #6b705c;
+  --color-badge-blm:      #8b4513;
+  --color-badge-free:     #588157;
+
+  --marker-nps:      #2d6a4f;
+  --marker-nps-free: #588157;
+  --marker-usfws:    #d4870e;
+  --marker-usfs:     #6b705c;
+  --marker-blm:      #8b4513;
+
+  --shadow-sm: 0 1px 3px rgba(31,38,23,0.06);
+  --shadow-md: 0 4px 14px rgba(31,38,23,0.08);
+  --shadow-lg: 0 12px 36px rgba(31,38,23,0.12);
+}
+
+[data-theme="dark"] {
+  --color-bg:             #141a12;
+  --color-surface:        #1c2318;
+  --color-surface-2:      #222a1e;
+  --color-surface-offset: #1a2016;
+  --color-divider:        #2a3324;
+  --color-border:         #3a4534;
+  --color-text:           #d4d8cc;
+  --color-text-muted:     #8a8f7d;
+  --color-text-faint:     #5c6153;
+  --color-text-inverse:   #1c2318;
+  --color-primary:        #52b788;
+  --color-primary-hover:  #74c69d;
+  --color-primary-active: #95d5b2;
+  --color-primary-light:  #1b3826;
+  --color-accent:         #d4a373;
+  --color-accent-hover:   #e0b88d;
+
+  --color-badge-nps:      #52b788;
+  --color-badge-usfws:    #e8a838;
+  --color-badge-usfs:     #8a8f7d;
+  --color-badge-blm:      #c47a3c;
+  --color-badge-free:     #74c69d;
+
+  --marker-nps:      #52b788;
+  --marker-nps-free: #74c69d;
+  --marker-usfws:    #e8a838;
+  --marker-usfs:     #8a8f7d;
+  --marker-blm:      #c47a3c;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 14px rgba(0,0,0,0.4);
+  --shadow-lg: 0 12px 36px rgba(0,0,0,0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-bg:             #141a12;
+    --color-surface:        #1c2318;
+    --color-surface-2:      #222a1e;
+    --color-surface-offset: #1a2016;
+    --color-divider:        #2a3324;
+    --color-border:         #3a4534;
+    --color-text:           #d4d8cc;
+    --color-text-muted:     #8a8f7d;
+    --color-text-faint:     #5c6153;
+    --color-text-inverse:   #1c2318;
+    --color-primary:        #52b788;
+    --color-primary-hover:  #74c69d;
+    --color-primary-active: #95d5b2;
+    --color-primary-light:  #1b3826;
+    --color-accent:         #d4a373;
+    --color-accent-hover:   #e0b88d;
+    --color-badge-nps:      #52b788;
+    --color-badge-usfws:    #e8a838;
+    --color-badge-usfs:     #8a8f7d;
+    --color-badge-blm:      #c47a3c;
+    --color-badge-free:     #74c69d;
+    --marker-nps:      #52b788;
+    --marker-nps-free: #74c69d;
+    --marker-usfws:    #e8a838;
+    --marker-usfs:     #8a8f7d;
+    --marker-blm:      #c47a3c;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 14px rgba(0,0,0,0.4);
+    --shadow-lg: 0 12px 36px rgba(0,0,0,0.5);
+  }
+}
+
+/* ===== BASE RESET ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+body {
+  height: 100dvh;
+  line-height: 1.6;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+img, picture, video, canvas, svg { display: block; max-width: 100%; height: auto; }
+input, button, textarea, select { font: inherit; color: inherit; }
+h1, h2, h3 { text-wrap: balance; line-height: 1.15; }
+p, li, figcaption { text-wrap: pretty; max-width: 72ch; }
+button { cursor: pointer; background: none; border: none; }
+
+a, button, [role="button"], input, textarea, select {
+  transition: color var(--transition-interactive),
+              background var(--transition-interactive),
+              border-color var(--transition-interactive),
+              box-shadow var(--transition-interactive);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+::selection {
+  background: oklch(from var(--color-primary) l c h / 0.25);
+  color: var(--color-text);
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;
+}
+
+/* ===== HEADER ===== */
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-divider);
+  position: relative;
+  z-index: 10;
+}
+
+.logo-area {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.logo-mark {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.logo-text {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.logo-sub {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.theme-toggle {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+}
+.theme-toggle:hover {
+  background: var(--color-surface-offset);
+  color: var(--color-text);
+}
+
+/* ===== MAIN LAYOUT ===== */
+.main-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+  width: 380px;
+  flex-shrink: 0;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-divider);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  z-index: 5;
+}
+
+.sidebar-header {
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.sidebar-header h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-1);
+}
+
+.sidebar-subtitle {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-3);
+}
+
+.search-box {
+  position: relative;
+}
+
+.search-box input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  padding-left: var(--space-10);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-2);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.search-box input::placeholder {
+  color: var(--color-text-faint);
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px oklch(from var(--color-primary) l c h / 0.12);
+}
+
+.search-icon {
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-faint);
+  pointer-events: none;
+}
+
+/* Filter section */
+.filter-section {
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-divider);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.filter-bar {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  border: 1.5px solid var(--color-border);
+  color: var(--color-text-muted);
+  background: transparent;
+  white-space: nowrap;
+}
+
+.filter-chip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.filter-chip.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+.filter-chip .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.filter-chip.active .dot {
+  background: var(--color-text-inverse) !important;
+}
+
+.region-select {
+  padding: var(--space-1) var(--space-3);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-2);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b705c' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 28px;
+}
+
+.region-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+/* Site list */
+.site-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2) 0;
+}
+
+.site-list::-webkit-scrollbar {
+  width: 6px;
+}
+.site-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.site-list::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+.site-card {
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-divider);
+  cursor: pointer;
+  transition: background var(--transition-interactive);
+}
+
+.site-card:hover {
+  background: var(--color-surface-offset);
+}
+
+.site-card.active {
+  background: var(--color-primary-light);
+  border-left: 3px solid var(--color-primary);
+}
+
+.site-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
+.site-card h3 {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.site-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.badge-nps {
+  background: oklch(from var(--color-badge-nps) l c h / 0.15);
+  color: var(--color-badge-nps);
+}
+.badge-usfws {
+  background: oklch(from var(--color-badge-usfws) l c h / 0.15);
+  color: var(--color-badge-usfws);
+}
+.badge-usfs {
+  background: oklch(from var(--color-badge-usfs) l c h / 0.15);
+  color: var(--color-badge-usfs);
+}
+.badge-blm {
+  background: oklch(from var(--color-badge-blm) l c h / 0.15);
+  color: var(--color-badge-blm);
+}
+.badge-nps-free {
+  background: oklch(from var(--color-badge-free) l c h / 0.15);
+  color: var(--color-badge-free);
+}
+
+.site-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  flex-wrap: wrap;
+}
+
+.site-meta .fee {
+  font-weight: 600;
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+
+.site-meta .fee s {
+  text-decoration: line-through;
+}
+
+.site-meta .free {
+  color: var(--color-badge-free);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.site-meta .state-label {
+  color: var(--color-text-faint);
+  white-space: nowrap;
+}
+
+.site-count {
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+  border-top: 1px solid var(--color-divider);
+  font-weight: 500;
+}
+
+/* ===== MAP ===== */
+.map-container {
+  flex: 1;
+  position: relative;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+}
+
+.maplibregl-popup-content {
+  background: var(--color-surface) !important;
+  color: var(--color-text) !important;
+  border-radius: var(--radius-lg) !important;
+  padding: var(--space-4) !important;
+  box-shadow: var(--shadow-lg) !important;
+  border: 1px solid var(--color-border) !important;
+  max-width: 300px !important;
+  font-family: var(--font-body) !important;
+}
+
+.maplibregl-popup-close-button {
+  color: var(--color-text-muted) !important;
+  font-size: 18px !important;
+  right: 8px !important;
+  top: 8px !important;
+}
+
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+  border-top-color: var(--color-surface) !important;
+}
+
+.popup-title {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-1);
+  padding-right: var(--space-6);
+}
+
+.popup-agency {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-2);
+}
+
+.popup-agency.nps { color: var(--color-badge-nps); }
+.popup-agency.nps-free { color: var(--color-badge-free); }
+.popup-agency.usfws { color: var(--color-badge-usfws); }
+.popup-agency.usfs { color: var(--color-badge-usfs); }
+.popup-agency.blm { color: var(--color-badge-blm); }
+
+.popup-desc {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin-bottom: var(--space-3);
+}
+
+.popup-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+}
+
+.popup-detail-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.popup-detail-row .label {
+  color: var(--color-text-faint);
+  min-width: 80px;
+  font-weight: 500;
+}
+
+.popup-detail-row .value {
+  font-weight: 600;
+}
+
+.popup-detail-row .value.saved {
+  color: var(--color-badge-free);
+}
+
+.popup-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.popup-link:hover {
+  background: var(--color-primary-hover);
+}
+
+/* Map legend */
+.map-legend {
+  position: absolute;
+  bottom: var(--space-8);
+  right: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-md);
+  z-index: 2;
+  font-size: var(--text-xs);
+}
+
+.legend-title {
+  font-weight: 700;
+  margin-bottom: var(--space-2);
+  color: var(--color-text);
+}
+
+.legend-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  flex-shrink: 0;
+}
+
+/* ===== MOBILE SIDEBAR TOGGLE ===== */
+.sidebar-toggle {
+  display: none;
+  position: absolute;
+  top: var(--space-4);
+  left: var(--space-4);
+  z-index: 8;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  box-shadow: var(--shadow-md);
+  place-items: center;
+  color: var(--color-text);
+}
+
+/* ===== FOOTER ===== */
+.site-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-6);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-divider);
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+  z-index: 10;
+}
+
+.site-footer a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  color: var(--color-primary);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .site-header {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 360px;
+    z-index: 8;
+    transform: translateX(-100%);
+    transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: none;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .sidebar-toggle {
+    display: grid;
+  }
+
+  .map-legend {
+    bottom: var(--space-4);
+    right: var(--space-2);
+    left: auto;
+    max-width: 180px;
+  }
+
+  .legend-items {
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .site-footer {
+    flex-direction: column;
+    gap: var(--space-1);
+    text-align: center;
+    padding: var(--space-2) var(--space-4);
+  }
+}
+
+/* MapLibre overrides for dark mode */
+[data-theme="dark"] .maplibregl-ctrl-group {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+}
+[data-theme="dark"] .maplibregl-ctrl-group button {
+  background: transparent !important;
+}
+[data-theme="dark"] .maplibregl-ctrl button .maplibregl-ctrl-icon {
+  filter: invert(1);
+}
+[data-theme="dark"] .legend-dot {
+  border-color: #333;
+}
+
+/* No results */
+.no-results {
+  padding: var(--space-8) var(--space-5);
+  text-align: center;
+  color: var(--color-text-muted);
+}
+.no-results p {
+  font-size: var(--text-sm);
+  max-width: none;
+}
+
+/* ===== CLUSTER STYLES ===== */
+.cluster-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-family: var(--font-body);
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.cluster-marker:hover {
+  transform: scale(1.1);
+}
+
+/* Custom marker for individual sites */
+.custom-marker {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2.5px solid white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  cursor: pointer;
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms ease;
+  display: grid;
+  place-items: center;
+}
+
+.custom-marker:hover {
+  transform: scale(1.25);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+}
+
+.custom-marker.active-marker {
+  transform: scale(1.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  z-index: 10 !important;
+}
+
+.custom-marker svg {
+  width: 14px;
+  height: 14px;
+  stroke: white;
+  fill: none;
+  stroke-width: 2;
+}
+
+.marker-nps { background: var(--marker-nps); }
+.marker-nps-free { background: var(--marker-nps-free); }
+.marker-usfws { background: var(--marker-usfws); }
+.marker-usfs { background: var(--marker-usfs); }
+.marker-blm { background: var(--marker-blm); }
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="site-header">
+  <div class="logo-area">
+    <svg class="logo-mark" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Park Pass Explorer">
+      <circle cx="18" cy="18" r="17" stroke="currentColor" stroke-width="1.5" style="color: var(--color-primary)"/>
+      <path d="M18 6 L12 16 L8 28 L18 24 L28 28 L24 16 Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" style="color: var(--color-primary)"/>
+      <path d="M18 6 L18 24" stroke="currentColor" stroke-width="1.5" style="color: var(--color-primary)"/>
+      <circle cx="18" cy="15" r="2.5" fill="currentColor" style="color: var(--color-primary)"/>
+    </svg>
+    <div>
+      <div class="logo-text">Park Pass Explorer</div>
+      <div class="logo-sub">Continental US</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="theme-toggle" data-theme-toggle aria-label="Switch to dark mode">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ===== MAIN ===== -->
+<div class="main-layout">
+
+  <!-- Mobile toggle -->
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle site list">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+  </button>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h2>Every NPS Site & More</h2>
+      <p class="sidebar-subtitle">All national parks and federal recreation sites — fee-charging and free</p>
+      <div class="search-box">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="searchInput" placeholder="Search by name, state, or type...">
+      </div>
+    </div>
+
+    <div class="filter-section">
+      <div class="filter-bar" id="filterBar">
+        <button class="filter-chip active" data-filter="all">All</button>
+        <button class="filter-chip" data-filter="nps"><span class="dot" style="background: var(--color-badge-nps)"></span>NPS (Pass)</button>
+        <button class="filter-chip" data-filter="nps-free"><span class="dot" style="background: var(--color-badge-free)"></span>NPS (Free)</button>
+        <button class="filter-chip" data-filter="usfws"><span class="dot" style="background: var(--color-badge-usfws)"></span>USFWS</button>
+        <button class="filter-chip" data-filter="usfs"><span class="dot" style="background: var(--color-badge-usfs)"></span>USFS</button>
+        <button class="filter-chip" data-filter="blm"><span class="dot" style="background: var(--color-badge-blm)"></span>BLM</button>
+      </div>
+      <select class="region-select" id="regionSelect">
+        <option value="all">All Regions</option>
+        <option value="northeast">Northeast</option>
+        <option value="southeast">Southeast</option>
+        <option value="midwest">Midwest</option>
+        <option value="west">West</option>
+        <option value="southwest">Southwest</option>
+      </select>
+    </div>
+
+    <div class="site-list" id="siteList"></div>
+    <div class="site-count" id="siteCount"></div>
+  </aside>
+
+  <!-- Map -->
+  <div class="map-container">
+    <div id="map"></div>
+
+    <div class="map-legend">
+      <div class="legend-title">Site Type</div>
+      <div class="legend-items">
+        <div class="legend-item">
+          <div class="legend-dot" style="background: var(--color-badge-nps)"></div>
+          <span>NPS (Pass covers fee)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background: var(--color-badge-free)"></div>
+          <span>NPS (Free entry)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background: var(--color-badge-usfws)"></div>
+          <span>Fish &amp; Wildlife Service</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background: var(--color-badge-usfs)"></div>
+          <span>US Forest Service</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background: var(--color-badge-blm)"></div>
+          <span>Bureau of Land Mgmt</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== FOOTER ===== -->
+<footer class="site-footer">
+  <span>Data sourced from NPS.gov, USFWS.gov, USFS.gov, BLM.gov &mdash; March 2026</span>
+  <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Created with Perplexity Computer</a>
+</footer>
+
+<script>
+// ===== DARK MODE TOGGLE =====
+(function(){
+  const t = document.querySelector('[data-theme-toggle]');
+  const r = document.documentElement;
+  let d = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  r.setAttribute('data-theme', d);
+  updateToggleIcon();
+
+  t && t.addEventListener('click', () => {
+    d = d === 'dark' ? 'light' : 'dark';
+    r.setAttribute('data-theme', d);
+    t.setAttribute('aria-label', 'Switch to ' + (d === 'dark' ? 'light' : 'dark') + ' mode');
+    updateToggleIcon();
+    updateMapStyle();
+  });
+
+  function updateToggleIcon() {
+    if (!t) return;
+    t.innerHTML = d === 'dark'
+      ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
+      : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+  }
+})();
+
+// ===== REGION MAPPING =====
+const REGIONS = {
+  northeast: ['ME','NH','VT','MA','RI','CT','NY','NJ','PA','DE','MD','DC'],
+  southeast: ['VA','WV','NC','SC','GA','FL','AL','MS','LA','TN','KY','AR'],
+  midwest: ['OH','IN','IL','MI','WI','MN','IA','MO','ND','SD','NE','KS'],
+  west: ['WA','OR','CA','NV','ID','MT','WY','CO','UT'],
+  southwest: ['AZ','NM','TX','OK']
+};
+
+function getRegion(state) {
+  for (const [region, states] of Object.entries(REGIONS)) {
+    if (states.includes(state)) return region;
+  }
+  return 'other';
+}
+
+const AGENCY_LABELS = {
+  nps: 'National Park Service',
+  'nps-free': 'NPS — Free Admission',
+  usfws: 'U.S. Fish & Wildlife Service',
+  usfs: 'U.S. Forest Service',
+  blm: 'Bureau of Land Management'
+};
+
+const AGENCY_URLS = {
+  nps: 'https://www.nps.gov/',
+  'nps-free': 'https://www.nps.gov/',
+  usfws: 'https://www.fws.gov/',
+  usfs: 'https://www.fs.usda.gov/',
+  blm: 'https://www.blm.gov/'
+};
+
+const STATE_NAMES = {
+  AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',CT:'Connecticut',DE:'Delaware',DC:'District of Columbia',FL:'Florida',GA:'Georgia',HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MS:'Mississippi',MO:'Missouri',MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',NJ:'New Jersey',NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming'
+};
+
+// ===== SITE DATA (all ~133 sites with coordinates) =====
+const sites = [
+  // ===== NPS SITES =====
+  { name:"Acadia National Park", state:"ME", vehicle_fee:"$35", person_fee:"$20", agency:"nps", lat:44.3386, lng:-68.2733, desc:"Rugged Atlantic coastline, granite peaks, and woodland trails on Maine's Mount Desert Island." },
+  { name:"Adams National Historical Park", state:"MA", vehicle_fee:"", person_fee:"$15", agency:"nps", lat:42.2563, lng:-71.0112, desc:"Historic homes of Presidents John Adams and John Quincy Adams in Quincy, Massachusetts." },
+  { name:"Antietam National Battlefield", state:"MD", vehicle_fee:"$20", person_fee:"$10", agency:"nps", lat:39.4747, lng:-77.7447, desc:"Site of the bloodiest single-day battle in American history during the Civil War." },
+  { name:"Arches National Park", state:"UT", vehicle_fee:"$30", person_fee:"$15", agency:"nps", lat:38.7331, lng:-109.5925, desc:"Over 2,000 natural stone arches, including iconic Delicate Arch, in the Utah desert." },
+  { name:"Assateague Island National Seashore", state:"MD", vehicle_fee:"$25", person_fee:"", agency:"nps", lat:38.0555, lng:-75.2418, desc:"Barrier island with wild horses, pristine beaches, and coastal habitats along the Atlantic." },
+  { name:"Badlands National Park", state:"SD", vehicle_fee:"$30", person_fee:"$15", agency:"nps", lat:43.8554, lng:-102.3397, desc:"Dramatic eroded buttes, pinnacles, and spires amid mixed-grass prairie and ancient fossil beds." },
+  { name:"Bandelier National Monument", state:"NM", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:35.7786, lng:-106.2713, desc:"Ancient Puebloan cliff dwellings and petroglyphs set in rugged canyon country." },
+  { name:"Bent's Old Fort National Historic Site", state:"CO", vehicle_fee:"", person_fee:"$10", agency:"nps", lat:38.0397, lng:-103.4266, desc:"Reconstructed 1840s adobe fur trading post on the Santa Fe Trail." },
+  { name:"Big Bend National Park", state:"TX", vehicle_fee:"$30", person_fee:"$15", agency:"nps", lat:29.2498, lng:-103.2502, desc:"Desert mountains, Rio Grande canyons, and dark skies along the Texas-Mexico border." },
+  { name:"Black Canyon of the Gunnison National Park", state:"CO", vehicle_fee:"$30", person_fee:"$15", agency:"nps", lat:38.5754, lng:-107.7416, desc:"Steep, narrow gorge with sheer dark walls carved by the Gunnison River." },
+  { name:"Bryce Canyon National Park", state:"UT", vehicle_fee:"$35", person_fee:"$20", agency:"nps", lat:37.5930, lng:-112.1871, desc:"Crimson-colored hoodoos and natural amphitheaters at the edge of the Paunsaugunt Plateau." },
+  { name:"Cabrillo National Monument", state:"CA", vehicle_fee:"$20", person_fee:"$10", agency:"nps", lat:32.6735, lng:-117.2425, desc:"Commemorates Juan Rodriguez Cabrillo's 1542 landing with sweeping views of San Diego harbor." },
+  { name:"Canaveral National Seashore", state:"FL", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:28.7328, lng:-80.7530, desc:"Florida's longest stretch of undeveloped Atlantic beach, adjacent to Kennedy Space Center." },
+  { name:"Canyonlands National Park", state:"UT", vehicle_fee:"$30", person_fee:"$15", agency:"nps", lat:38.2136, lng:-109.9025, desc:"Vast desert landscape of canyons, mesas, and buttes carved by the Colorado and Green Rivers." },
+  { name:"Cape Cod National Seashore", state:"MA", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:41.8401, lng:-69.9648, desc:"40 miles of pristine sandy beaches, dunes, and marshes on the outer Cape." },
+  { name:"Capitol Reef National Park", state:"UT", vehicle_fee:"$20", person_fee:"$10", agency:"nps", lat:38.0877, lng:-111.1505, desc:"A 100-mile wrinkle in the earth's crust with colorful cliffs, canyons, and orchards." },
+  { name:"Capulin Volcano National Monument", state:"NM", vehicle_fee:"$20", person_fee:"$10", agency:"nps", lat:36.7823, lng:-104.1082, desc:"Nearly perfectly shaped cinder cone volcano rising 1,000 feet above the surrounding plains." },
+  { name:"Carlsbad Caverns National Park", state:"NM", vehicle_fee:"", person_fee:"$15", agency:"nps", lat:32.1479, lng:-104.5567, desc:"Over 100 caves including the famous Big Room, a massive underground limestone chamber." },
+  { name:"Castillo de San Marcos National Monument", state:"FL", vehicle_fee:"", person_fee:"$15", agency:"nps", lat:29.8977, lng:-81.3116, desc:"The oldest masonry fort in the continental US, built by the Spanish in St. Augustine." },
+  { name:"Cedar Breaks National Monument", state:"UT", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:37.6350, lng:-112.8450, desc:"A natural amphitheater of vivid red, orange, and purple rock formations at 10,000 feet." },
+  { name:"Chaco Culture National Historical Park", state:"NM", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:36.0604, lng:-107.9612, desc:"Ancient Puebloan great houses and ceremonial kivas in a remote desert canyon." },
+  { name:"Chattahoochee River National Recreation Area", state:"GA", vehicle_fee:"$5", person_fee:"$5", agency:"nps", lat:33.9939, lng:-84.3274, desc:"48-mile river corridor with trails, fishing, and paddling through metro Atlanta." },
+  { name:"Chesapeake & Ohio Canal National Historical Park", state:"MD", vehicle_fee:"$20", person_fee:"$10", agency:"nps", lat:39.0004, lng:-77.2438, desc:"184-mile towpath along the historic canal from Georgetown to Cumberland." },
+  { name:"Chickamauga & Chattanooga NMP (Point Park)", state:"TN", vehicle_fee:"", person_fee:"$10", agency:"nps", lat:35.0106, lng:-85.3444, desc:"Civil War battlefield park with panoramic views from Lookout Mountain's Point Park." },
+  { name:"Colonial National Historical Park", state:"VA", vehicle_fee:"", person_fee:"$15", agency:"nps", lat:37.2209, lng:-76.5099, desc:"Connects Jamestown, Williamsburg, and Yorktown — the story of America's founding." },
+  { name:"Colorado National Monument", state:"CO", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:39.0502, lng:-108.6868, desc:"Towering monoliths and deep canyons along the scenic Rim Rock Drive near Grand Junction." },
+  { name:"Crater Lake National Park", state:"OR", vehicle_fee:"$30", person_fee:"$15", agency:"nps", lat:42.8684, lng:-122.1685, desc:"The deepest lake in the US, filling a collapsed volcanic crater with brilliant blue water." },
+  { name:"Craters of the Moon National Monument", state:"ID", vehicle_fee:"$20", person_fee:"$10", agency:"nps", lat:43.4167, lng:-113.5167, desc:"Vast lava flows, cinder cones, and lava tubes across an otherworldly volcanic landscape." },
+  { name:"Cumberland Island National Seashore", state:"GA", vehicle_fee:"", person_fee:"$15", agency:"nps", lat:30.8500, lng:-81.4500, desc:"Georgia's largest barrier island with wild horses, pristine beaches, and Carnegie ruins." },
+  { name:"Death Valley National Park", state:"CA", vehicle_fee:"$30", person_fee:"$15", agency:"nps", lat:36.5054, lng:-117.0794, desc:"Hottest, driest, and lowest point in North America with stunning desert landscapes." },
+  { name:"Delaware Water Gap National Recreation Area", state:"NJ", vehicle_fee:"$10", person_fee:"", agency:"nps", lat:41.1136, lng:-74.8837, desc:"40 miles of the Delaware River with waterfalls, hiking, and swimming at Milford Beach." },
+  { name:"Devils Tower National Monument", state:"WY", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:44.5902, lng:-104.7146, desc:"America's first national monument — a dramatic volcanic rock column rising 867 feet." },
+  { name:"Dinosaur National Monument", state:"CO", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:40.4386, lng:-108.9600, desc:"World-class dinosaur fossil quarry and scenic river canyons along the Green and Yampa Rivers." },
+  { name:"Dry Tortugas National Park", state:"FL", vehicle_fee:"", person_fee:"$15", agency:"nps", lat:24.6285, lng:-82.8732, desc:"Remote island fortress Fort Jefferson surrounded by crystal-clear waters 70 miles from Key West." },
+  { name:"Everglades National Park", state:"FL", vehicle_fee:"$35", person_fee:"$20", agency:"nps", lat:25.2866, lng:-80.8987, desc:"Largest subtropical wilderness in the US, home to alligators, manatees, and rare orchids." },
+  { name:"Florissant Fossil Beds National Monument", state:"CO", vehicle_fee:"", person_fee:"$10", agency:"nps", lat:38.9147, lng:-105.2810, desc:"Exceptional Eocene-era fossils including giant petrified redwood stumps and detailed insect imprints." },
+  { name:"Fort Davis National Historic Site", state:"TX", vehicle_fee:"$20", person_fee:"$10", agency:"nps", lat:30.5988, lng:-103.8946, desc:"Best surviving example of a frontier military post in the Southwest, active 1854–1891." },
+  { name:"Fort McHenry National Monument", state:"MD", vehicle_fee:"", person_fee:"$15", agency:"nps", lat:39.2633, lng:-76.5797, desc:"Star-shaped fort whose defense in 1814 inspired Francis Scott Key to write the Star-Spangled Banner." },
+  { name:"Fort Pulaski National Monument", state:"GA", vehicle_fee:"", person_fee:"$10", agency:"nps", lat:32.0286, lng:-80.8901, desc:"Massive pre-Civil War masonry fort near Savannah with moats, drawbridges, and coastal wildlife." },
+  { name:"Fort Sumter and Fort Moultrie NHP", state:"SC", vehicle_fee:"", person_fee:"$10", agency:"nps", lat:32.7524, lng:-79.8747, desc:"Where the first shots of the Civil War were fired in Charleston Harbor." },
+  { name:"Fort Vancouver National Historic Site", state:"WA", vehicle_fee:"", person_fee:"$10", agency:"nps", lat:45.6215, lng:-122.6548, desc:"Reconstructed Hudson's Bay Company trading post, key site in Pacific Northwest history." },
+  { name:"Glacier National Park", state:"MT", vehicle_fee:"$35", person_fee:"$20", agency:"nps", lat:48.7596, lng:-113.7870, desc:"Crown of the Continent with alpine meadows, glacial lakes, and the Going-to-the-Sun Road." },
+  { name:"Glen Canyon National Recreation Area", state:"AZ", vehicle_fee:"$30", person_fee:"$15", agency:"nps", lat:37.0683, lng:-111.2433, desc:"Lake Powell's blue waters set against red sandstone canyons and dramatic desert scenery." },
+  { name:"Golden Spike National Historical Park", state:"UT", vehicle_fee:"$20", person_fee:"$10", agency:"nps", lat:41.6198, lng:-112.5476, desc:"Where the transcontinental railroad was completed in 1869 at Promontory Summit." },
+  { name:"Grand Canyon National Park", state:"AZ", vehicle_fee:"$35", person_fee:"$20", agency:"nps", lat:36.1069, lng:-112.1129, desc:"A mile-deep gorge revealing 2 billion years of earth's geological history." },
+  { name:"Grand Teton National Park", state:"WY", vehicle_fee:"$35", person_fee:"$20", agency:"nps", lat:43.7904, lng:-110.6818, desc:"Dramatic Teton Range rising abruptly 7,000 feet above the Jackson Hole valley." },
+  { name:"Great Falls Park", state:"VA", vehicle_fee:"$20", person_fee:"$10", agency:"nps", lat:38.9970, lng:-77.2505, desc:"Spectacular Potomac River waterfalls and gorge just 15 miles from Washington, DC." },
+  { name:"Great Sand Dunes National Park", state:"CO", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:37.7329, lng:-105.5124, desc:"Tallest sand dunes in North America, rising 750 feet against the Sangre de Cristo Mountains." },
+  { name:"Guadalupe Mountains National Park", state:"TX", vehicle_fee:"", person_fee:"$10", agency:"nps", lat:31.9231, lng:-104.8645, desc:"Texas's highest point and an ancient Permian reef with rugged desert and mountain trails." },
+  { name:"Gulf Islands National Seashore", state:"FL", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:30.3088, lng:-87.1398, desc:"White sand barrier islands and azure waters stretching from Mississippi to Florida." },
+  { name:"Harpers Ferry National Historical Park", state:"WV", vehicle_fee:"$20", person_fee:"$10", agency:"nps", lat:39.3253, lng:-77.7286, desc:"Historic town at the confluence of the Potomac and Shenandoah Rivers, site of John Brown's raid." },
+  { name:"Home of Franklin D. Roosevelt NHS", state:"NY", vehicle_fee:"", person_fee:"$15", agency:"nps", lat:41.7667, lng:-73.9261, desc:"FDR's lifelong home and presidential library in Hyde Park on the Hudson River." },
+  { name:"Hovenweep National Monument", state:"UT", vehicle_fee:"$20", person_fee:"$10", agency:"nps", lat:37.3839, lng:-109.0776, desc:"Six clusters of remarkably well-preserved Ancestral Puebloan towers and dwellings." },
+  { name:"Indiana Dunes National Park", state:"IN", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:41.6533, lng:-87.0524, desc:"15 miles of Lake Michigan shoreline with towering dunes, prairies, and diverse ecosystems." },
+  { name:"Isle Royale National Park", state:"MI", vehicle_fee:"", person_fee:"$7", agency:"nps", lat:48.0000, lng:-88.8500, desc:"Remote island wilderness in Lake Superior, famous for its wolf and moose populations." },
+  { name:"Joshua Tree National Park", state:"CA", vehicle_fee:"$30", person_fee:"$15", agency:"nps", lat:33.8734, lng:-115.9010, desc:"Where the Mojave and Colorado Deserts meet, iconic Joshua trees and surreal rock formations." },
+  { name:"Kennesaw Mountain National Battlefield Park", state:"GA", vehicle_fee:"$5", person_fee:"$5", agency:"nps", lat:33.9830, lng:-84.5782, desc:"Civil War battlefield with hiking trails and panoramic views of Atlanta." },
+  { name:"Lake Mead National Recreation Area", state:"NV", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:36.0159, lng:-114.7377, desc:"America's first national recreation area with boating, fishing, and desert scenery near Las Vegas." },
+  { name:"Lassen Volcanic National Park", state:"CA", vehicle_fee:"$30", person_fee:"$15", agency:"nps", lat:40.4977, lng:-121.5078, desc:"All four types of volcanoes — active hydrothermal features, fumaroles, and boiling pools." },
+  { name:"Lava Beds National Monument", state:"CA", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:41.7138, lng:-121.5087, desc:"Over 700 lava tube caves, Native American rock art, and Modoc War battlefields." },
+  { name:"Lewis and Clark National Historical Park", state:"OR", vehicle_fee:"", person_fee:"$10", agency:"nps", lat:46.1342, lng:-123.8775, desc:"Explores the expedition's Pacific coast journey including the reconstructed Fort Clatsop." },
+  { name:"Little Bighorn Battlefield National Monument", state:"MT", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:45.5686, lng:-107.4266, desc:"Site of the 1876 battle between the U.S. Army and Lakota, Northern Cheyenne, and Arapaho." },
+  { name:"Little River Canyon National Preserve", state:"AL", vehicle_fee:"$15", person_fee:"", agency:"nps", lat:34.3726, lng:-85.6289, desc:"One of the deepest canyons east of the Mississippi with waterfalls and canyon rim drives." },
+  { name:"Mesa Verde National Park", state:"CO", vehicle_fee:"$30", person_fee:"$15", agency:"nps", lat:37.2309, lng:-108.4618, desc:"Over 5,000 archaeological sites including famous Ancestral Puebloan cliff dwellings." },
+  { name:"Montezuma Castle National Monument", state:"AZ", vehicle_fee:"", person_fee:"$10", agency:"nps", lat:34.6115, lng:-111.8350, desc:"Well-preserved five-story Sinagua cliff dwelling built into a limestone cliff." },
+  { name:"Mount Rainier National Park", state:"WA", vehicle_fee:"$30", person_fee:"$15", agency:"nps", lat:46.8523, lng:-121.7603, desc:"Iconic volcanic peak with glaciers, wildflower meadows, and old-growth forests." },
+  { name:"Muir Woods National Monument", state:"CA", vehicle_fee:"", person_fee:"$15", agency:"nps", lat:37.8970, lng:-122.5811, desc:"Cathedral-like grove of ancient coast redwoods just north of San Francisco." },
+  { name:"Natural Bridges National Monument", state:"UT", vehicle_fee:"$20", person_fee:"$10", agency:"nps", lat:37.6045, lng:-110.0040, desc:"Three natural rock bridges carved by water, and one of the darkest night skies in the US." },
+  { name:"Olympic National Park", state:"WA", vehicle_fee:"$30", person_fee:"$15", agency:"nps", lat:47.8021, lng:-123.6044, desc:"Diverse landscapes from glacier-capped peaks to temperate rainforests and rugged Pacific coastline." },
+  { name:"Organ Pipe Cactus National Monument", state:"AZ", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:32.0394, lng:-112.8598, desc:"Rare organ pipe cacti and Sonoran Desert ecosystems along the US-Mexico border." },
+  { name:"Padre Island National Seashore", state:"TX", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:27.0580, lng:-97.3880, desc:"Longest stretch of undeveloped barrier island in the world, home to nesting sea turtles." },
+  { name:"Petrified Forest National Park", state:"AZ", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:34.9100, lng:-109.8068, desc:"Ancient petrified logs, colorful Painted Desert badlands, and Ancestral Puebloan sites." },
+  { name:"Pictured Rocks National Lakeshore", state:"MI", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:46.5620, lng:-86.3390, desc:"Multicolored sandstone cliffs rising up to 200 feet above Lake Superior." },
+  { name:"Pinnacles National Park", state:"CA", vehicle_fee:"$30", person_fee:"$15", agency:"nps", lat:36.4906, lng:-121.1825, desc:"Ancient volcanic spires, talus caves, and habitat for endangered California condors." },
+  { name:"Pipe Spring National Monument", state:"AZ", vehicle_fee:"", person_fee:"$10", agency:"nps", lat:36.8627, lng:-112.7381, desc:"Historic ranch and fort preserving the story of Western expansion and Kaibab Paiute culture." },
+  { name:"Prince William Forest Park", state:"VA", vehicle_fee:"$20", person_fee:"$10", agency:"nps", lat:38.5824, lng:-77.3866, desc:"Largest protected natural area in the DC metro — piedmont forest with hiking and camping." },
+  { name:"Rocky Mountain National Park", state:"CO", vehicle_fee:"$30", person_fee:"$15", agency:"nps", lat:40.3428, lng:-105.6836, desc:"Trail Ridge Road crosses the Continental Divide with alpine tundra, elk herds, and 60+ peaks over 12,000 ft." },
+  { name:"Saguaro National Park", state:"AZ", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:32.2967, lng:-111.1666, desc:"Giant saguaro cacti — icons of the American West — flanking Tucson in two districts." },
+  { name:"Saint-Gaudens National Historical Park", state:"NH", vehicle_fee:"", person_fee:"$10", agency:"nps", lat:43.4997, lng:-72.3716, desc:"Home and studios of sculptor Augustus Saint-Gaudens with gardens and art galleries." },
+  { name:"San Francisco Maritime NHP", state:"CA", vehicle_fee:"", person_fee:"$15", agency:"nps", lat:37.8069, lng:-122.4228, desc:"Historic fleet of ships at Hyde Street Pier and the maritime museum at Fisherman's Wharf." },
+  { name:"Sequoia & Kings Canyon National Parks", state:"CA", vehicle_fee:"$35", person_fee:"$20", agency:"nps", lat:36.4864, lng:-118.5658, desc:"World's largest trees by volume and the deepest canyon in North America." },
+  { name:"Shenandoah National Park", state:"VA", vehicle_fee:"$30", person_fee:"$15", agency:"nps", lat:38.5329, lng:-78.3514, desc:"Skyline Drive along the Blue Ridge with cascading waterfalls and Appalachian hiking." },
+  { name:"Sleeping Bear Dunes National Lakeshore", state:"MI", vehicle_fee:"$25", person_fee:"", agency:"nps", lat:44.8773, lng:-86.0518, desc:"Towering sand dunes overlooking Lake Michigan, named America's most beautiful place." },
+  { name:"Sunset Crater Volcano National Monument", state:"AZ", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:35.3651, lng:-111.5005, desc:"Colorful volcanic cinder cone and lava flows from an eruption around 1085 AD near Flagstaff." },
+  { name:"Theodore Roosevelt National Park", state:"ND", vehicle_fee:"$30", person_fee:"$15", agency:"nps", lat:46.9790, lng:-103.4516, desc:"Colorful badlands where TR fell in love with the Wild West, with bison and wild horses." },
+  { name:"Thomas Edison National Historical Park", state:"NJ", vehicle_fee:"", person_fee:"$15", agency:"nps", lat:40.7862, lng:-74.2388, desc:"Edison's laboratory complex and Glenmont estate where he invented the phonograph and more." },
+  { name:"Tonto National Monument", state:"AZ", vehicle_fee:"", person_fee:"$10", agency:"nps", lat:33.6503, lng:-111.1085, desc:"Well-preserved Salado cliff dwellings overlooking Roosevelt Lake in the Sonoran Desert." },
+  { name:"Tumacácori National Historical Park", state:"AZ", vehicle_fee:"", person_fee:"$10", agency:"nps", lat:31.5678, lng:-111.0510, desc:"Ruins of three Spanish colonial missions dating to the late 1600s in southern Arizona." },
+  { name:"Tuzigoot National Monument", state:"AZ", vehicle_fee:"", person_fee:"$10", agency:"nps", lat:34.7706, lng:-112.0296, desc:"Hilltop Sinagua pueblo ruin overlooking the Verde Valley, occupied 1000–1400 AD." },
+  { name:"Valles Caldera National Preserve", state:"NM", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:35.8700, lng:-106.5200, desc:"Massive volcanic caldera with vast grasslands, elk herds, and geothermal features." },
+  { name:"Vanderbilt Mansion National Historic Site", state:"NY", vehicle_fee:"", person_fee:"$15", agency:"nps", lat:41.7950, lng:-73.9419, desc:"Gilded Age Beaux-Arts mansion and grounds overlooking the Hudson River." },
+  { name:"Vicksburg National Military Park", state:"MS", vehicle_fee:"$20", person_fee:"$10", agency:"nps", lat:32.3463, lng:-90.8499, desc:"Commemorates the pivotal 47-day Civil War siege that gave the Union control of the Mississippi." },
+  { name:"Walnut Canyon National Monument", state:"AZ", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:35.1723, lng:-111.5106, desc:"Sinagua cliff dwellings nestled in a forested limestone canyon near Flagstaff." },
+  { name:"Whiskeytown National Recreation Area", state:"CA", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:40.6126, lng:-122.5479, desc:"Mountain lake recreation with waterfalls, gold rush history, and forested trails." },
+  { name:"White Sands National Park", state:"NM", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:32.7872, lng:-106.3257, desc:"Surreal landscape of brilliant white gypsum sand dunes — the world's largest gypsum dunefield." },
+  { name:"Wright Brothers National Memorial", state:"NC", vehicle_fee:"", person_fee:"$10", agency:"nps", lat:36.0143, lng:-75.6679, desc:"Where Orville and Wilbur Wright achieved the first powered flight in 1903 at Kill Devil Hills." },
+  { name:"Wupatki National Monument", state:"AZ", vehicle_fee:"$25", person_fee:"$15", agency:"nps", lat:35.5193, lng:-111.3714, desc:"Ancestral Puebloan ruins in a painted desert landscape near Flagstaff's volcanic fields." },
+  { name:"Yellowstone National Park", state:"WY", vehicle_fee:"$35", person_fee:"$20", agency:"nps", lat:44.4280, lng:-110.5885, desc:"World's first national park with geysers, hot springs, wildlife, and the Grand Canyon of Yellowstone." },
+  { name:"Yosemite National Park", state:"CA", vehicle_fee:"$35", person_fee:"$20", agency:"nps", lat:37.8651, lng:-119.5383, desc:"Iconic granite cliffs, waterfalls, giant sequoias, and diverse wilderness in the Sierra Nevada." },
+  { name:"Zion National Park", state:"UT", vehicle_fee:"$35", person_fee:"$20", agency:"nps", lat:37.2982, lng:-113.0263, desc:"Towering red and cream sandstone cliffs with narrow canyons, including The Narrows." },
+  { name:"Perry's Victory & International Peace Memorial", state:"OH", vehicle_fee:"", person_fee:"$10", agency:"nps", lat:41.6541, lng:-82.8114, desc:"A 352-foot Doric column on South Bass Island — observation deck admission covered by your pass." },
+  { name:"Rio Grande Wild & Scenic River", state:"TX", vehicle_fee:"$30", person_fee:"", agency:"nps", lat:29.3278, lng:-103.2059, desc:"196 miles of free-flowing Rio Grande winding through remote desert canyons with 100-million-year-old rock walls near Big Bend." },
+
+  // ===== USFWS SITES =====
+  { name:"Arm Loxahatchee NWR", state:"FL", vehicle_fee:"$10", person_fee:"$5", agency:"usfws", lat:26.4963, lng:-80.2169, desc:"Northern remnant of the Everglades with cypress swamps, marshes, and wading birds." },
+  { name:"Back Bay National Wildlife Refuge", state:"VA", vehicle_fee:"$10", person_fee:"$5", agency:"usfws", lat:36.6690, lng:-75.9178, desc:"Barrier island refuge with beach, dunes, and freshwater marshes near Virginia Beach." },
+  { name:"Blackwater National Wildlife Refuge", state:"MD", vehicle_fee:"$5", person_fee:"$3", agency:"usfws", lat:38.4456, lng:-76.0679, desc:"Tidal marshes on Maryland's Eastern Shore, a critical stopover for migratory birds." },
+  { name:"Bombay Hook National Wildlife Refuge", state:"DE", vehicle_fee:"$5", person_fee:"$3", agency:"usfws", lat:39.2696, lng:-75.4654, desc:"Delaware Bay tidal salt marsh and freshwater pools attracting shorebirds and waterfowl." },
+  { name:"Bosque del Apache NWR", state:"NM", vehicle_fee:"$5", person_fee:"$3", agency:"usfws", lat:33.8045, lng:-106.8913, desc:"World-famous wintering grounds for sandhill cranes and snow geese along the Rio Grande." },
+  { name:"Crab Orchard National Wildlife Refuge", state:"IL", vehicle_fee:"$5", person_fee:"", agency:"usfws", lat:37.7307, lng:-89.0587, desc:"Southern Illinois refuge with three lakes, waterfowl habitat, and Canada goose wintering grounds." },
+  { name:"DeSoto National Wildlife Refuge", state:"IA", vehicle_fee:"$5", person_fee:"$3", agency:"usfws", lat:41.5292, lng:-96.0003, desc:"Missouri River floodplain refuge and wintering area for snow geese and bald eagles." },
+  { name:"Dungeness National Wildlife Refuge", state:"WA", vehicle_fee:"$5", person_fee:"$3", agency:"usfws", lat:48.1450, lng:-123.1900, desc:"Natural sand spit on the Strait of Juan de Fuca sheltering harbor seals and migratory birds." },
+  { name:"Holla Bend National Wildlife Refuge", state:"AR", vehicle_fee:"$5", person_fee:"$3", agency:"usfws", lat:35.1050, lng:-93.0584, desc:"Former Arkansas River oxbow providing habitat for wintering waterfowl and bald eagles." },
+  { name:"Laguna Atascosa NWR", state:"TX", vehicle_fee:"$5", person_fee:"$3", agency:"usfws", lat:26.2250, lng:-97.3468, desc:"Southernmost wildlife refuge in Texas, protecting rare ocelots and tropical bird species." },
+  { name:"Merritt Island National Wildlife Refuge", state:"FL", vehicle_fee:"$10", person_fee:"$5", agency:"usfws", lat:28.7142, lng:-80.7544, desc:"Shares space with Kennedy Space Center; diverse habitats for 1,500+ species of wildlife." },
+  { name:"Hobe Sound National Wildlife Refuge", state:"FL", vehicle_fee:"$5", person_fee:"", agency:"usfws", lat:27.0577, lng:-80.1107, desc:"One of the most significant sea turtle nesting beaches on the Atlantic coast." },
+  { name:"Okefenokee National Wildlife Refuge", state:"GA", vehicle_fee:"$5", person_fee:"", agency:"usfws", lat:30.7416, lng:-82.2723, desc:"Nearly 400,000-acre freshwater wetland with cypress swamps, prairies, and abundant alligators." },
+  { name:"Ridgefield National Wildlife Refuge", state:"WA", vehicle_fee:"$5", person_fee:"$3", agency:"usfws", lat:45.8170, lng:-122.7486, desc:"Columbia River floodplain with grasslands and wetlands along the Pacific Flyway." },
+  { name:"Sacramento National Wildlife Refuge", state:"CA", vehicle_fee:"$6", person_fee:"", agency:"usfws", lat:39.4308, lng:-122.1861, desc:"Central Valley wetlands hosting millions of wintering ducks, geese, and shorebirds." },
+  { name:"Santa Ana National Wildlife Refuge", state:"TX", vehicle_fee:"$5", person_fee:"$3", agency:"usfws", lat:26.0783, lng:-98.1452, desc:"Subtropical oasis along the Rio Grande, called the 'gem' of the refuge system for birding." },
+
+  // ===== USFS SITES =====
+  { name:"Cherokee National Forest", state:"TN", vehicle_fee:"$5", person_fee:"", agency:"usfs", lat:35.3089, lng:-84.1064, desc:"Over 650,000 acres of Appalachian mountain forest with waterfalls and the Ocoee River." },
+  { name:"Cibola National Forest", state:"NM", vehicle_fee:"$5", person_fee:"", agency:"usfs", lat:34.7461, lng:-107.2568, desc:"Mountain islands rising from desert grasslands across central New Mexico." },
+  { name:"Cleveland National Forest", state:"CA", vehicle_fee:"$5", person_fee:"", agency:"usfs", lat:33.3820, lng:-116.7700, desc:"Southern California's mountain escape with chaparral, oak woodlands, and the Pacific Crest Trail." },
+  { name:"Columbia River Gorge National Scenic Area", state:"OR", vehicle_fee:"$5", person_fee:"", agency:"usfs", lat:45.7116, lng:-121.5197, desc:"Dramatic 80-mile canyon with waterfalls, wildflowers, and the Columbia River's legacy." },
+  { name:"Coronado National Forest", state:"AZ", vehicle_fee:"$5", person_fee:"", agency:"usfs", lat:32.4000, lng:-110.7000, desc:"Sky island mountain ranges in southeastern Arizona with dramatic elevation changes." },
+  { name:"Deschutes National Forest", state:"OR", vehicle_fee:"$5", person_fee:"", agency:"usfs", lat:43.8081, lng:-121.7492, desc:"Central Oregon's volcanic landscape with rivers, lakes, and the Newberry Volcanic Monument." },
+  { name:"Huron-Manistee National Forests", state:"MI", vehicle_fee:"$5", person_fee:"", agency:"usfs", lat:44.2500, lng:-85.5000, desc:"Nearly one million acres of northern Michigan forest with rivers, lakes, and dunes." },
+  { name:"Medicine Bow-Routt National Forest", state:"WY", vehicle_fee:"$5", person_fee:"", agency:"usfs", lat:41.3500, lng:-106.3167, desc:"High-elevation forests straddling the Colorado-Wyoming border with alpine lakes and peaks." },
+  { name:"Mt. Hood National Forest", state:"OR", vehicle_fee:"$5", person_fee:"", agency:"usfs", lat:45.3736, lng:-121.6960, desc:"Oregon's tallest peak with year-round skiing, Timberline Lodge, and Pacific Crest Trail access." },
+  { name:"Siuslaw National Forest", state:"OR", vehicle_fee:"$5", person_fee:"", agency:"usfs", lat:44.2091, lng:-123.8561, desc:"Oregon's coastal forest with sand dunes, tidepools, and temperate rainforest." },
+  { name:"Uinta-Wasatch-Cache National Forest", state:"UT", vehicle_fee:"$6", person_fee:"", agency:"usfs", lat:40.7800, lng:-111.6700, desc:"Utah's premier mountain recreation along the Wasatch Range near Salt Lake City." },
+  { name:"White Mountain National Forest", state:"NH", vehicle_fee:"$5", person_fee:"", agency:"usfs", lat:44.1000, lng:-71.5000, desc:"New England's premier mountain destination with the Kancamagus Highway and fall foliage." },
+
+  // ===== BLM SITES =====
+  { name:"Red Rock Canyon NCA", state:"NV", vehicle_fee:"$20", person_fee:"$10", agency:"blm", lat:36.1353, lng:-115.4275, desc:"Stunning red sandstone formations and a 13-mile scenic drive just west of Las Vegas." },
+  { name:"Yuma BLM Recreation Sites", state:"AZ", vehicle_fee:"$15", person_fee:"", agency:"blm", lat:32.6927, lng:-114.6277, desc:"Colorado River recreation areas near Yuma with desert camping and river access." },
+  { name:"Lake Havasu Shoreline (BLM)", state:"AZ", vehicle_fee:"$15", person_fee:"", agency:"blm", lat:34.4839, lng:-114.3225, desc:"Desert shoreline recreation on Lake Havasu with beaches, boat launches, and camping." },
+  { name:"Pompeys Pillar National Monument", state:"MT", vehicle_fee:"$7", person_fee:"", agency:"blm", lat:45.9933, lng:-108.0030, desc:"Sandstone butte along the Yellowstone River bearing Captain William Clark's 1806 signature." },
+
+  // ===== NPS FREE SITES =====
+  { name:"Abraham Lincoln Birthplace National Historical Park", state:"KY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.5858662, lng:-85.67330523, desc:"For over a century people from around the world have come to rural Central Kentucky to honor the humble beginnings of our 16th president, Abraham..." },
+  { name:"African American Civil War Memorial", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.9166, lng:-77.026, desc:"Over 200,000 African-American soldiers and sailors served in the U.S. Army and Navy during the Civil War. Their service helped to end the war and..." },
+  { name:"African Burial Ground National Monument", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.71452681, lng:-74.00447358, desc:"The African Burial Ground stands as the oldest and largest known excavated burial site in North America for both free and enslaved Africans. It..." },
+  { name:"Agate Fossil Beds National Monument", state:"NE", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.42170419, lng:-103.753886, desc:"In the early 1900s, paleontologists unearthed the Age of Mammals when they found full skeletons of extinct Miocene mammals in the hills of Nebraska..." },
+  { name:"Alcatraz Island", state:"CA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.82676234, lng:-122.4230206, desc:"Alcatraz reveals stories of American incarceration, justice, and our common humanity. This small island was once a fort, a military prison, and a..." },
+  { name:"Alibates Flint Quarries National Monument", state:"TX", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.5819662, lng:-101.6717008, desc:"13,000 years ago, Alibates Flint was used by mammoth hunters as a source of flint for tools. Learn how important this site was to the survival,..." },
+  { name:"Allegheny Portage Railroad National Historic Site", state:"PA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.42977467, lng:-78.57431622, desc:"The first railroad to cross the Allegheny Mountains, the Allegheny Portage Railroad was the final piece of the Pennsylvania Main Line Canal. \"The..." },
+  { name:"Amache National Historic Site", state:"CO", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.04962, lng:-102.32903, desc:"Amache, also known as the Granada Relocation Center, near Granada, Colorado was one of ten incarceration sites established by the War Relocation..." },
+  { name:"Amistad National Recreation Area", state:"TX", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:29.53539777, lng:-101.075821, desc:"An oasis in the desert, Amistad National Recreation Area consists of the US portion of the International Amistad Reservoir. Amistad, a Spanish word..." },
+  { name:"Anacostia Park", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.8782, lng:-76.9703, desc:"Welcome to Anacostia Park, your neighborhood national park in the heart of Washington, DC! Enjoy exercise along the river trail or relax by the..." },
+  { name:"Andersonville National Historic Site", state:"GA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:32.19831758, lng:-84.12988898, desc:"Nearly 13,000 men died on these grounds, a site that became infamous even before the Civil War ended. Their burial grounds became Andersonville..." },
+  { name:"Andrew Johnson National Historic Site", state:"TN", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:36.15624509, lng:-82.83709021, desc:"Andrew Johnson's complex presidency (1865-69) illustrates the Constitution at work following the Civil War. As the President and Congress disagreed..." },
+  { name:"Apostle Islands National Lakeshore", state:"WI", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:46.96240467, lng:-90.66045665, desc:"Apostle Islands National Lakeshore, located at the northern tip of Wisconsin's Bayfield Peninsula, features 21 stunning islands, a scenic 12-mile..." },
+  { name:"Appalachian National Scenic Trail", state:"CT", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.41029575, lng:-76.4337548, desc:"The Appalachian Trail is a 2,190+ mile long public footpath that traverses the scenic, wooded, pastoral, wild, and culturally resonant lands of the..." },
+  { name:"Appomattox Court House National Historical Park", state:"VA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.38022164, lng:-78.79856982, desc:"On April 9, 1865, the surrender of the Army of Northern Virginia in the McLean House in the village of Appomattox Court House, Virginia signaled the..." },
+  { name:"Arkansas Post National Memorial", state:"AR", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:34.00389998, lng:-91.30837178, desc:"Located at the confluence of two rivers, Arkansas Post has served as a gathering place for many cultures throughout human history - it represents..." },
+  { name:"Arlington House, The Robert E. Lee Memorial", state:"VA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.8822021484, lng:-77.0734786987, desc:"Arlington House is the nation’s memorial to Robert E. Lee. It honors him for specific reasons, including his role in promoting peace and reunion..." },
+  { name:"Aztec Ruins National Monument", state:"NM", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:36.83682216, lng:-107.9999245, desc:"Aztec Ruins has some of the best-preserved Chacoan structures of its kind. Learn more about the ancestral Pueblo people in the park's museum and..." },
+  { name:"Baltimore-Washington Parkway", state:"MD", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.02604289, lng:-76.85410921, desc:"This 29-mile highway connects Baltimore, MD and Washington, D.C. The parkway has carried visitors to and from the capital city since 1954." },
+  { name:"Belmont-Paul Women's Equality National Monument", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.89231541, lng:-77.00381882, desc:"Home to the National Woman's Party for more than 90 years, this was the epicenter of the struggle for women's rights. From this house in the shadow..." },
+  { name:"Big Cypress National Preserve", state:"FL", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:25.97079602, lng:-81.08120629, desc:"The freshwaters of the Big Cypress Swamp, essential to the health of the neighboring Everglades, support the rich marine estuaries along Florida's..." },
+  { name:"Big Hole National Battlefield", state:"MT", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:45.64647324, lng:-113.6458443, desc:"On August 9, 1877, gunshots shattered a chilly dawn on a sleeping camp of nımí·pu· (Nez Perce). By the time the smoke cleared on August 10, almost 90..." },
+  { name:"Big South Fork National River & Recreation Area", state:"KY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:36.5348388, lng:-84.66506688, desc:"Encompassing 125,000 acres of the Cumberland Plateau, Big South Fork National River and Recreation Area protects the free-flowing Big South Fork of..." },
+  { name:"Big Thicket National Preserve", state:"TX", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:30.457983431, lng:-94.386742115, desc:"Life of all types abounds in the Big Thicket. This national preserve protects the incredible diversity of life found where multiple habitats meet in..." },
+  { name:"Bighorn Canyon National Recreation Area", state:"MT", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:45.13154227, lng:-108.1443943, desc:"The vast, wild landscape of Bighorn Canyon National Recreation Area offers visitors unparalleled opportunities to immerse themselves in the natural..." },
+  { name:"Birmingham Civil Rights National Monument", state:"AL", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:33.5154266357, lng:-86.814666748, desc:"In 1963, images of snarling police dogs unleashed against non-violent protesters and of children being sprayed with high-pressure hoses appeared in..." },
+  { name:"Biscayne National Park", state:"FL", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:25.490587, lng:-80.21023851, desc:"Within sight of Miami, yet worlds away, Biscayne protects a rare combination of aquamarine waters, emerald islands, and fish-bejeweled coral reefs...." },
+  { name:"Blackstone River Valley National Historical Park", state:"RI", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:41.8775792792, lng:-71.382433945, desc:"The Blackstone River powered America's entry into the Age of Industry. The success of Samuel Slater's cotton spinning mill in Pawtucket, RI touched..." },
+  { name:"Blackwell School National Historic Site", state:"TX", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:30.3057966497568, lng:-104.022553112857, desc:"Written by prejudice rather than law, the story of the Blackwell School is one of “separate but equal” education for Mexican and Mexican American..." },
+  { name:"Blue Ridge Parkway", state:"NC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.5657195274, lng:-82.486484587, desc:"A Blue Ridge Parkway experience is unlike any other: a slow-paced and relaxing drive revealing stunning long-range vistas and close-up views of the..." },
+  { name:"Bluestone National Scenic River", state:"WV", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.56577087, lng:-80.98366657, desc:"The Bluestone River and the rugged and ancient gorge it has carved is a richly diverse and scenic area of the southern Appalachians. Bluestone..." },
+  { name:"Booker T Washington National Monument", state:"VA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.11520539, lng:-79.73185833, desc:"Booker T. Washington was born a slave in April 1856 on the 207-acre farm of James Burroughs. After the Civil War, Washington became the first..." },
+  { name:"Boston African American National Historic Site", state:"MA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.35908295, lng:-71.06764181, desc:"Centered on the north slope of Beacon Hill, the African American community of 1800s Boston led the city and the nation in the fight against slavery..." },
+  { name:"Boston Harbor Islands National Recreation Area", state:"MA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.30905526, lng:-70.93941138, desc:". . . where you can walk a Civil War-era fort, view historic lighthouses, explore tide pools, hike lush trails, camp under the stars, or relax while..." },
+  { name:"Boston National Historical Park", state:"MA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.36957407, lng:-71.05536763, desc:"Discover how one city could be the Cradle of Liberty, site of the first major battle of American Revolution, and home to many who espoused that..." },
+  { name:"Brices Cross Roads National Battlefield Site", state:"MS", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:34.50611958, lng:-88.72889343, desc:"The Confederate victory at Brices Cross Roads was a significant victory for Major General Nathan Bedford Forrest, but its long-term effect on the war..." },
+  { name:"Brown v. Board of Education National Historical Park", state:"KS", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.03787665, lng:-95.67614437, desc:"The path to equality has been anything but smooth. It's taken courage and dedication by everyday people coming together for a common goal to carry..." },
+  { name:"Buffalo National River", state:"AR", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:36.04116481, lng:-92.90761584, desc:"Established in 1972, Buffalo National River flows freely for 135 miles and is one of the few remaining undammed rivers in the lower 48 states. Once..." },
+  { name:"Butterfield Overland National Historic Trail", state:"MO", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:32.2768237589, lng:-106.796583304, desc:"In 1857, businessman and transportation entrepreneur John Butterfield was awarded a contract to establish an overland mail route between the eastern..." },
+  { name:"California National Historic Trail", state:"CA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.3999643979, lng:-108.702415369, desc:"Follow in the footsteps of over 250,000 emigrants who traveled to the gold fields and rich farmlands of California during the 1840s and 1850s: the..." },
+  { name:"Camp Nelson National Monument", state:"KY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.7970179913, lng:-84.598168306, desc:"The US Army established Camp Nelson as a fortified supply depot in April 1863. Over the next 3 years, the site evolved into a massive recruitment and..." },
+  { name:"Cane River Creole National Historical Park", state:"LA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:31.65408447, lng:-93.00131977, desc:"The Cane River region is home to a unique culture; the Creoles. Generations of the same families of workers, enslaved and tenant, and owners lived on..." },
+  { name:"Canyon de Chelly National Monument", state:"AZ", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:36.14319567, lng:-109.3388303, desc:"This canyon is home to Diné families who raise livestock, grow crops and live here. People have lived in these canyons for nearly 5,000 years, which..." },
+  { name:"Cape Hatteras National Seashore", state:"NC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.41370839, lng:-75.65061112, desc:"The sound of ocean waves, the starry night sky, or the calm of the salt marshes, you can experience it all. Shaped by the forces of water, wind, and..." },
+  { name:"Cape Henry Memorial Part of Colonial National Historical Park", state:"VA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:36.9278094, lng:-76.0088219, desc:"English colonists first landed here in April 1607, erected a wooden cross and gave thanks for a successful crossing to a new land. In 1781, Americans..." },
+  { name:"Cape Lookout National Seashore", state:"NC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:34.8267961, lng:-76.34319082, desc:"A boat ride three miles off-shore brings you to the barrier islands of Cape Lookout National Seashore. Horse watching, shelling, fishing, birding,..." },
+  { name:"Capitol Hill Parks", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.889993, lng:-76.990332, desc:"The Capitol Hill Parks include several park areas east of the U.S. Capitol. Included in this group are Folger, Lincoln, Stanton, and Marion Parks,..." },
+  { name:"Captain John Smith Chesapeake National Historic Trail", state:"VA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.971601, lng:-76.483355, desc:"People first arrived in the Chesapeake Bay during the last ice age. As glaciers melted, diverse societies learned to thrive in a world of water. When..." },
+  { name:"Carl Sandburg Home National Historic Site", state:"NC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.26815509, lng:-82.45106258, desc:"Post Helene Status: Pedestrian detour in place from main parking lot. Grounds / trails open dawn till dusk 7 days a week. Barn open 7 days a week..." },
+  { name:"Carlisle Federal Indian Boarding School National Monument", state:"PA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.2094, lng:-77.17971, desc:"More than 7,800 children from 140 Tribes went to the Carlisle School from 1879 to 1918. The National Park Service will collaborate with families,..." },
+  { name:"Carter G. Woodson Home National Historic Site", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.91089286, lng:-77.02431104, desc:"Before Dr. Carter G. Woodson, there was very little accurate written history about the lives and experiences of Americans of African descent. Today a..." },
+  { name:"Casa Grande Ruins National Monument", state:"AZ", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:32.99702582, lng:-111.5325383, desc:"An Ancestral Sonoran Desert People's farming community and \"Great House\" are preserved at Casa Grande Ruins. Whether a gathering place for people..." },
+  { name:"Castle Clinton National Monument", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.70347795, lng:-74.01680558, desc:"Located at the southern tip of Manhattan, Castle Clinton marks the place where New York City began and reflects the growth of both the city and the..." },
+  { name:"Castle Mountains National Monument", state:"CA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.29156348, lng:-115.0935606, desc:"Castle Mountains represents some of the most unique elements of the Mojave Desert. Nestled between the Nevada state line and Mojave National..." },
+  { name:"Catoctin Mountain Park", state:"MD", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.65068457, lng:-77.46417665, desc:"President Franklin D. Roosevelt created programs to give people a chance to rebuild their lives from the Great Depression. The Works Progress..." },
+  { name:"Cedar Creek & Belle Grove National Historical Park", state:"VA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.0093576, lng:-78.30618934, desc:"Virginia’s Shenandoah Valley has a long and rich heritage that still inspires today. Native Americans first shaped the land, followed by colonists..." },
+  { name:"Chamizal National Memorial", state:"TX", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:31.76729634, lng:-106.4544011, desc:"Chamizal is more than just an urban park to recreate or enjoy a quiet afternoon. These grounds are a reminder of the harmonious settlement of a..." },
+  { name:"Channel Islands National Park", state:"CA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:33.98680093, lng:-119.9112735, desc:"Channel Islands National Park encompasses five remarkable islands and their ocean environment, preserving and protecting a wealth of natural and..." },
+  { name:"Charles Pinckney National Historic Site", state:"SC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:32.84577392, lng:-79.82487582, desc:"Charles Pinckney was a principal author and signer of the United States Constitution and went on to be a political leader in South Carolina for over..." },
+  { name:"Charles Young Buffalo Soldiers National Monument", state:"OH", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.70817829, lng:-83.89328575, desc:"Throughout his life, Charles Young overcame countless obstacles in his ascent to prominence. In spite of overt racism and stifling inequality, Young..." },
+  { name:"Chesapeake Bay", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.971601, lng:-76.483355, desc:"Over 41 million acres are connected through the waters that flow to and through Chesapeake Bay. The National Park Service strives to connect people..." },
+  { name:"Chickasaw National Recreation Area", state:"OK", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:34.46050507, lng:-97.00715669, desc:"Springs, streams, lakes - whatever its form, water is the attraction at Chickasaw National Recreation Area." },
+  { name:"Chiricahua National Monument", state:"AZ", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:32.01214618, lng:-109.341607, desc:"Explore rhyolite pinnacles and balanced rocks on foot or by car. Relax at the campground under star-filled, dark skies. See how a mountain range..." },
+  { name:"City Of Rocks National Reserve", state:"ID", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.0699024, lng:-113.7124097, desc:"Described by California Trail emigrants as “a city of tall spires,” “steeple rocks,” and “the silent city,” this awe-inspiring landscape continues to..." },
+  { name:"Civil War Defenses of Washington", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.9644, lng:-77.0292, desc:"On forested hills surrounding the nation's capital are the remnants of a complex system of Civil War fortifications. These strategic buttresses..." },
+  { name:"Clara Barton National Historic Site", state:"MD", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.96762882, lng:-77.14009689, desc:"Clara Barton dedicated her life and energies to help others in times of need - both home and abroad, in peacetime as well as during military..." },
+  { name:"Coltsville National Historical Park", state:"CT", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.4677505493, lng:-73.203666687, desc:"When Samuel Colt started his Hartford factory on the banks of the Connecticut River in 1847, it followed years of mismanagement and failure. Soon,..." },
+  { name:"Congaree National Park", state:"SC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:33.79187523, lng:-80.74867805, desc:"Astonishing biodiversity exists in Congaree National Park, the largest intact expanse of old growth bottomland hardwood forest remaining in the..." },
+  { name:"Constitution Gardens", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.8909354, lng:-77.04409306, desc:"Officially established in 1965, National Mall and Memorial Parks actually protects some of the older parkland in the National Park System. Areas..." },
+  { name:"Coronado National Memorial", state:"AZ", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:31.34900397, lng:-110.2561574, desc:"It was a journey of conquest filled with exploration, wonder - and cruelty. Inspired by tales of vast cities of gold, 339 European soldiers and over..." },
+  { name:"Cowpens National Battlefield", state:"SC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.13160654, lng:-81.80935433, desc:"A pasturing area at the time of the battle, this Revolutionary War site commemorates the place where Daniel Morgan and his army turned the flanks of..." },
+  { name:"Cumberland Gap National Historical Park", state:"KY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:36.62503076, lng:-83.6114083, desc:"Cumberland Gap was the first great gateway to the west. Come follow the path of bison, Native Americans, longhunters, and pioneers. Walk where..." },
+  { name:"Curecanti National Recreation Area", state:"CO", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.46584558, lng:-107.3303371, desc:"Three reservoirs and surrounding lands make up this recreation area in western Colorado. It is a landscape of tradeoffs; natural and human made..." },
+  { name:"Cuyahoga Valley National Park", state:"OH", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:41.26093905, lng:-81.57116722, desc:"Though a short distance from the urban areas of Cleveland and Akron, Cuyahoga Valley National Park seems worlds away. The park is a refuge for native..." },
+  { name:"César E. Chávez National Monument", state:"CA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.22729389, lng:-118.5615781, desc:"Yes, we can! Widely recognized as the most important Latino leader in the United States during the twentieth century, Cesar Chavez led farm workers..." },
+  { name:"Dayton Aviation Heritage National Historical Park", state:"OH", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.78944467, lng:-84.10442045, desc:"Dayton Aviation Heritage National Historical Park was established to honor the lives and achievements of poet and author Paul Laurence Dunbar and..." },
+  { name:"De Soto National Memorial", state:"FL", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:27.52272613, lng:-82.64335416, desc:"In May 1539, Conquistador Hernando de Soto’s army of soldiers, hired mercenaries, craftsmen, and clergy made landfall in Tampa Bay. They were met..." },
+  { name:"Devils Postpile National Monument", state:"CA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.6152564, lng:-119.0873903, desc:"Established in 1911 by presidential proclamation, Devils Postpile National Monument protects and preserves the Devils Postpile formation, the..." },
+  { name:"Dwight D. Eisenhower Memorial", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.8869476647, lng:-77.018737554, desc:"The Dwight D. Eisenhower Memorial tells the story of one of America's greatest leaders of the 20th century." },
+  { name:"Ebey's Landing National Historical Reserve", state:"WA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:48.21403036, lng:-122.6877213, desc:"This stunning landscape on the Salish Sea, with its rich farmland and promising seaport, lured the earliest American pioneers north of the Columbia..." },
+  { name:"Edgar Allan Poe National Historic Site", state:"PA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.96195482, lng:-75.1500062, desc:"Described as horrifying, mystifying, and brilliant, Poe’s writing has engaged readers all over the world. The six years Edgar Allan Poe lived in..." },
+  { name:"Effigy Mounds National Monument", state:"IA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:43.08095081, lng:-91.19687517, desc:"The mounds preserved here are considered sacred by many Americans, especially the Monument's 20 culturally associated American Indian tribes. A visit..." },
+  { name:"Eisenhower National Historic Site", state:"PA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.79577592, lng:-77.26508101, desc:"Eisenhower National Historic Site preserves the farm of General and 34th President Dwight D. Eisenhower. Adjacent to the Gettysburg battlefield, the..." },
+  { name:"El Camino Real de Tierra Adentro National Historic Trail", state:"NM", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:33.7990672546, lng:-106.866386195, desc:"Travel along El Camino Real de Tierra Adentro National Historic Trail to experience and learn from a complicated legacy of 300 years of conflict,..." },
+  { name:"El Camino Real de los Tejas National Historic Trail", state:"TX", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:30.0922964581, lng:-97.3397666725, desc:"Explore a diverse array of histories contained within El Camino Real de los Tejas’ 150-year life, including the Spanish struggle to missionize..." },
+  { name:"El Malpais National Monument", state:"NM", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:34.88422799, lng:-107.9950948, desc:"The richly diverse volcanic landscape of El Malpais (el-mal-pie-EES) offers solitude, recreation, and adventure. Explore incredible geologic features..." },
+  { name:"El Morro National Monument", state:"NM", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.03895916, lng:-108.3463984, desc:"Imagine the refreshment of finding water after days of dusty travel. A reliable waterhole hidden at the base of a sandstone bluff made El Morro (the..." },
+  { name:"Eleanor Roosevelt National Historic Site", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:41.76208482, lng:-73.89894026, desc:"Visit the home of Eleanor Roosevelt. Here, Franklin and Eleanor entertained friends, the press, activists, and official state visitors in the relaxed..." },
+  { name:"Ellis Island Part of Statue of Liberty National Monument", state:"NJ", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.69946, lng:-74.0401, desc:"Millions of Americans and people around the world have ancestors who came through Ellis Island. The Main Immigration Building was the epicenter of..." },
+  { name:"Emmett Till and Mamie Till-Mobley National Monument", state:"IL", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:33.9711, lng:-90.3698, desc:"In 1955, 14-year-old Emmett Till traveled to Money, Mississippi, to visit relatives. He was kidnapped, tortured, and murdered after reportedly..." },
+  { name:"Eugene O'Neill National Historic Site", state:"CA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.82604456, lng:-122.0271566, desc:"America's only Nobel Prize-winning playwright, Eugene O'Neill, chose Northern California as his sanctuary at the pinnacle of his writing career...." },
+  { name:"Federal Hall National Memorial", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.70731192, lng:-74.01025636, desc:"Here at Federal Hall, George Washington took the oath of office as the first President of the United States, marking the beginning of the American..." },
+  { name:"Fire Island National Seashore", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.69668638, lng:-73.00013462, desc:"Immerse yourself in an enchanting collage of coastal life and history. Rhythmic waves, high dunes, ancient maritime forests, historic landmarks and..." },
+  { name:"First Ladies National Historic Site", state:"OH", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.79689857, lng:-81.37579869, desc:"First Ladies National Historic Site consists of two properties in downtown Canton, Ohio - the home of First Lady Ida Saxton-McKinley and our Visitor..." },
+  { name:"First State National Historical Park", state:"DE", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.83076929, lng:-75.56353942, desc:"Famous as the First State to ratify the Constitution, Delaware was born out of a conflict among three world powers for dominance of the Delaware..." },
+  { name:"Flight 93 National Memorial", state:"PA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.06061476, lng:-78.89456905, desc:"On Tuesday morning, September 11, 2001, the U.S. came under attack when four commercial airliners were hijacked and used to strike targets on the..." },
+  { name:"Ford's Theatre National Historic Site", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.89668819, lng:-77.02577944, desc:"On April 14, 1865, President Abraham Lincoln was assassinated at Ford’s Theatre. Discover how everyday people experienced a national tragedy and how..." },
+  { name:"Fort Bowie National Historic Site", state:"AZ", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:32.14925942, lng:-109.451132, desc:"For nearly 25 years, Fort Bowie stood at the crossroads of the Chiricahua Apache's fight to defend their ancestral homeland and the U.S. Army's..." },
+  { name:"Fort Donelson National Battlefield", state:"KY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:36.49019078, lng:-87.92445695, desc:"Brigadier General Ulysses S. Grant was becoming quite famous as he wrote these words following the surrender of Confederate Fort Donelson on Sunday,..." },
+  { name:"Fort Dupont Park", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.87731289, lng:-76.94955824, desc:"This 361 acre wooded park was once home to an earthen fort built to protect Washington, DC, during the Civil War. Today, visitors can see the fort's..." },
+  { name:"Fort Foote Park", state:"MD", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.76901785, lng:-77.02812387, desc:"Fort Foote was constructed in 1863 atop Rozier's Bluff to strengthen the ring of fortifications that encircled Washington, D.C. Two of the Guns that..." },
+  { name:"Fort Frederica National Monument", state:"GA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:31.2214699, lng:-81.39452014, desc:"War was imminent as James Oglethorpe established Fort Frederica in 1736, to help protect the British colonies from the Spanish in Florida. Fort..." },
+  { name:"Fort Laramie National Historic Site", state:"WY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.20301694, lng:-104.5459112, desc:"Originally established as a private fur trading fort in 1834, Fort Laramie evolved into the largest and best-known military post on the Northern..." },
+  { name:"Fort Larned National Historic Site", state:"KS", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.18047491, lng:-99.21836664, desc:"Discover a complete and authentic army post from the 1860s -1870s! This well-preserved fort on the Santa Fe Trail shares a tumultuous history of the..." },
+  { name:"Fort Matanzas National Monument", state:"FL", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:29.7121489, lng:-81.23567535, desc:"Fort Matanzas National Monument preserves the fortified coquina watchtower, completed in 1742, which defended the southern approach to the Spanish..." },
+  { name:"Fort Monroe National Monument", state:"VA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.01733343, lng:-76.30103195, desc:"Fort Monroe's story spans from prehistory to the 2000s. Kecoughtan Indians occupied Old Point Comfort before the arrival of English colonists. The..." },
+  { name:"Fort Necessity National Battlefield", state:"PA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.81306048, lng:-79.59033344, desc:"The battle at Fort Necessity in the summer of 1754 was the opening action of the French and Indian War. This war was a clash of British, French and..." },
+  { name:"Fort Point National Historic Site", state:"CA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.80837439, lng:-122.473747, desc:"From its vantage point overlooking the spectacular Golden Gate, Fort Point defended the San Francisco Bay following California's Gold Rush through..." },
+  { name:"Fort Raleigh National Historic Site", state:"NC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.93278602, lng:-75.71496865, desc:"Amongst the shallow blue waters of the Outer Banks lies Fort Raleigh on Roanoke Island. Shaped by constant winds of change, Fort Raleigh has become a..." },
+  { name:"Fort Scott National Historic Site", state:"KS", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.84358849, lng:-94.70429174, desc:"Promises made and broken! Who deserves to be free? The fight for freedom! Soldiers fighting settlers! Each of these stories is a link in the chain of..." },
+  { name:"Fort Smith National Historic Site", state:"AR", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.38834746, lng:-94.43129079, desc:"Explore life on the edge of frontier and Indian Territory through the stories of soldiers, the Trail of Tears, scandals, outlaws, and lawmen who..." },
+  { name:"Fort Stanwix National Monument", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:43.21053441, lng:-75.45557626, desc:"For centuries, the Oneida Carrying Place, a six-mile portage connecting the Mohawk River and Wood Creek, served as a vital link for those traveling..." },
+  { name:"Fort Union National Monument", state:"NM", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.90700629, lng:-105.0145185, desc:"Exposed to the wind, within a sweeping valley of short grass prairie, and along the eroded Santa Fe Trail, lie the adobe walled ruins of the largest..." },
+  { name:"Fort Union Trading Post National Historic Site", state:"MT", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:48.00075828, lng:-104.0375238, desc:"Between 1828 and 1867, Fort Union was the most important fur trade post on the Upper Missouri River. Here, the Assiniboine and six other Northern..." },
+  { name:"Fort Washington Park", state:"MD", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.7117, lng:-77.0302, desc:"Built to defend the river approach to Washington, DC, Fort Washington has stood sentry for over 200 years. As technologies advanced, so did Fort..." },
+  { name:"Fossil Butte National Monument", state:"WY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:41.85635223, lng:-110.7624754, desc:"In the ridges of southwest Wyoming are some of the best-preserved fossils in the world. They tell the story of ancient life in a warm, wet..." },
+  { name:"Frances Perkins National Monument", state:"ME", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:44.0052, lng:-69.5568, desc:"Known as the first woman to hold a presidential cabinet position and the “Woman behind the New Deal,” Frances Perkins championed many labor rights..." },
+  { name:"Franklin Delano Roosevelt Memorial", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.88341274, lng:-77.04311542, desc:"These words by President Franklin Delano Roosevelt ushered the United States into World War II and defined what it is to be an American. Stop by this..." },
+  { name:"Frederick Douglass National Historic Site", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.86298458, lng:-76.98508147, desc:"Frederick Douglass spent his life fighting for justice and equality. Born into slavery in 1818, he escaped as a young man and became a leading voice..." },
+  { name:"Frederick Law Olmsted National Historic Site", state:"MA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.32424266, lng:-71.13202567, desc:"Frederick Law Olmsted (1822-1903) is recognized as the founder of American landscape architecture and the nation's foremost parkmaker. Olmsted moved..." },
+  { name:"Fredericksburg & Spotsylvania National Military Park", state:"VA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.29378, lng:-77.46734, desc:"Fredericksburg, Chancellorsville, Wilderness, and Spotsylvania, this is America's battleground, where the Civil War roared to its bloody climax. No..." },
+  { name:"Freedom Riders National Monument", state:"AL", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:33.635269165, lng:-85.9064331055, desc:"In 1961, a small interracial band of “Freedom Riders” challenged discriminatory laws requiring separation of the races in interstate travel. They..." },
+  { name:"Friendship Hill National Historic Site", state:"PA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.77543423, lng:-79.92504169, desc:"Albert Gallatin is best remembered for his thirteen year tenure as Secretary of the Treasury during the Jefferson and Madison administrations. In..." },
+  { name:"Gateway Arch National Park", state:"MO", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.6258069, lng:-90.1892508, desc:"Gateway Arch National Park commemorates President Jefferson’s vision of a continental nation, the individuals and cultural groups who helped shape..." },
+  { name:"Gateway National Recreation Area", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.56536246, lng:-73.9171087, desc:"Spanning 27,000 acres from Sandy Hook in New Jersey to Breezy Point in New York City, the park is both the gateway from the ocean into New York..." },
+  { name:"Gauley River National Recreation Area", state:"WV", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.20614947, lng:-81.00420836, desc:"The 25 miles of free-flowing Gauley River and the six miles of the Meadow River pass through scenic gorges and valleys containing a wide variety of..." },
+  { name:"General Grant National Memorial", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.81332817, lng:-73.96331542, desc:"The final resting place of President Ulysses S. Grant and his wife, Julia, is the largest mausoleum in North America. It testifies to a people’s..." },
+  { name:"George Rogers Clark National Historical Park", state:"IN", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.67912659, lng:-87.53545212, desc:"The British flag would not be raised above Fort Sackville Feb. 25, 1779. At 10 A.M., the garrison surrendered to American Colonel George Rogers..." },
+  { name:"George Washington Birthplace National Monument", state:"VA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.19362603, lng:-76.92079458, desc:"George Washington Birthplace National Monument is located in the Northern Neck of Virginia. It encompasses 551 acres of land where seven generations..." },
+  { name:"George Washington Carver National Monument", state:"MO", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:36.9871322, lng:-94.35522737, desc:"The young child known as the \"Plant Doctor\" tended his secret garden while observing the day-to-day operations of a 19th century farm. Nature and..." },
+  { name:"George Washington Memorial Parkway", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.9628, lng:-77.1495, desc:"The George Washington Memorial Parkway was designed for recreational driving. It links sites that commemorate important episodes in American history..." },
+  { name:"Gettysburg National Military Park", state:"PA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.81557366, lng:-77.23246758, desc:"The Battle of Gettysburg was a turning point in the Civil War, the Union victory that ended General Robert E. Lee's second and most ambitious..." },
+  { name:"Gila Cliff Dwellings National Monument", state:"NM", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:33.22715258, lng:-108.2706711, desc:"For thousands of years, groups of nomads used the caves above Cliff Dweller Creek as temporary shelter. In the late 1200s, people of the agricultural..." },
+  { name:"Glen Echo Park", state:"MD", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.96912315, lng:-77.14012206, desc:"Glen Echo Park began in 1891 as a National Chautauqua Assembly \"to promote liberal and practical education.\" By 1911, it transformed into DC's..." },
+  { name:"Gloria Dei Church National Historic Site", state:"PA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.93435005, lng:-75.14398924, desc:"Before Pennsylvania there was New Sweden. Discover this last historic link to a forgotten past. Visit the church's pastoral surroundings and its..." },
+  { name:"Golden Gate National Recreation Area", state:"CA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.85982543, lng:-122.6007386, desc:"Experience a park so rich it supports 19 distinct ecosystems with over 2,000 plant and animal species. Go for a hike, enjoy a vista, have a picnic or..." },
+  { name:"Governors Island National Monument", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.69164233, lng:-74.01670765, desc:"From 1794 to 1966, the U.S. Army presence on Governors Island played a vital role in the social, political, and economic life of New York City. The..." },
+  { name:"Grand Canyon-Parashant National Monument", state:"AZ", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:36.41535465, lng:-113.6682797, desc:"Despite the hardships created by rugged isolation and the lack of natural waters, Parashant has a long human history spanning more than 11,000 years,..." },
+  { name:"Grand Portage National Monument", state:"MN", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:47.99294217, lng:-89.75573031, desc:"Travel into the past to discover the present. Explore the partnership between the Grand Portage Anishinaabe and the North West Company during the..." },
+  { name:"Grant-Kohrs Ranch National Historic Site", state:"MT", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:46.41358923, lng:-112.7467024, desc:"Wide open spaces, the hard-working cowboy, his spirited cow pony, and vast herds of cattle are among the strongest symbols of the American West. Once..." },
+  { name:"Great Basin National Park", state:"NV", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.94617378, lng:-114.2579782, desc:"From the 13,063-foot summit of Wheeler Peak to the sagebrush-covered foothills, Great Basin National Park hosts a sample of the incredible diversity..." },
+  { name:"Great Egg Harbor River", state:"NJ", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.3042, lng:-74.6497, desc:"Both the harbor and river were named for the shorebird and waterfowl eggs covering their meadows. During the American Revolution, privateers hid..." },
+  { name:"Great Smoky Mountains National Park", state:"NC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.60116374, lng:-83.50818326, desc:"Ridge upon ridge of forest straddles the border between North Carolina and Tennessee in Great Smoky Mountains National Park. World renowned for its..." },
+  { name:"Green Springs", state:"VA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.037099, lng:-78.189823, desc:"Green Springs National Historic Landmark District in Virginia’s Piedmont encompasses over 14,000 acres. Its landscapes and structures, privately..." },
+  { name:"Greenbelt Park", state:"MD", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.98328267, lng:-76.89722133, desc:"Enjoy affordable camping, hiking, and peaceful forest surroundings just ten miles from Washington, DC!" },
+  { name:"Guilford Courthouse National Military Park", state:"NC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:36.13225478, lng:-79.8424561, desc:"\"I never saw such fighting since God made me. The Americans fought like demons.\" - Lt. General Charles, Earl Cornwallis On March 15, 1781, six..." },
+  { name:"Hagerman Fossil Beds National Monument", state:"ID", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.79074114, lng:-114.9443074, desc:"During the Pliocene, this place looked quite different. Lush wetlands, forests, and grasslands provided excellent habitat for a variety of animals...." },
+  { name:"Hamilton Grange National Memorial", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.81871605, lng:-73.94878487, desc:"Merchant’s clerk, Revolutionary War soldier, first Secretary Treasury of the United States: Alexander Hamilton’s life is memorialized at The Grange,..." },
+  { name:"Hampton National Historic Site", state:"MD", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.4175296, lng:-76.58781182, desc:"Hampton National Historic Site preserves what remains of a once 25,000-acre enslavement plantation. For hundreds of years, enslaved people,..." },
+  { name:"Harmony Hall", state:"MD", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.74646351, lng:-77.00377069, desc:"The 18th century Harmony Hall mansion is located on a 62.5-acre open pasture land estate along the Potomac River. This estate was purchased by the..." },
+  { name:"Harriet Tubman National Historical Park", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.9128920287, lng:-76.5646715462, desc:"Harriet Tubman was guided by a deep faith and devotion to family, freedom, and community. After emancipating herself and members of her family, she..." },
+  { name:"Harriet Tubman Underground Railroad National Historical Park", state:"MD", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.4548643511, lng:-76.1373451376, desc:"Harriet Tubman was a deeply spiritual woman who lived her ideals and dedicated her life to freedom. She is the Underground Railroad’s best known..." },
+  { name:"Harry S Truman National Historic Site", state:"MO", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.92711967, lng:-94.5162488, desc:"President Harry S Truman took America from its traditional isolationism into the age of international involvement. Despite his power, he never forgot..." },
+  { name:"Herbert Hoover National Historic Site", state:"IA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:41.66793558, lng:-91.35232139, desc:"Orphaned at age nine, Herbert Hoover left West Branch never to live here again. In later years, he returned to his humble birthplace to celebrate his..." },
+  { name:"Homestead National Historical Park", state:"NE", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.28802381, lng:-96.83387781, desc:"The Homestead Act of 1862 transformed the world. Millions were invited to file claims including families, women, immigrants, and formerly enslaved..." },
+  { name:"Hopewell Culture National Historical Park", state:"OH", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.31594374, lng:-83.08049456, desc:"Nearly 2000 years ago, Native Americans built dozens of monumental mounds and earthen enclosures in southern Ohio. These earthwork complexes were..." },
+  { name:"Hopewell Furnace National Historic Site", state:"PA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.20610637, lng:-75.76766355, desc:"Hopewell Furnace showcases an early American landscape of industrial operations from 1771-1883, Hopewell and other iron plantations laid the..." },
+  { name:"Horseshoe Bend National Military Park", state:"AL", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:32.97668879, lng:-85.73413589, desc:"On March 27, 1814, Major General Andrew Jackson ‘s army of 3,300 men attacked Chief Menawa’s 1,000 Red Stick Creek warriors fortified in a horseshoe..." },
+  { name:"Hot Springs National Park", state:"AR", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:34.52414366, lng:-93.06332936, desc:"Hot Springs National Park has a rich cultural past. The grand architecture of our historic bathhouses is equally matched by the natural curiosities..." },
+  { name:"Hubbell Trading Post National Historic Site", state:"AZ", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.70727324, lng:-109.5599515, desc:"Wóshdę́ę́, please come in where the squeaky wooden floors greet your entry into the oldest operating Trading Post on the Navajo Nation. As your eyes..." },
+  { name:"Ice Age Floods National Geologic Trail", state:"WA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:46.5669309008, lng:-118.992564971, desc:"At the end of the last Ice Age, 18,000 to 15,000 years ago, an ice dam in northern Idaho created Glacial Lake Missoula stretching 3,000 square miles..." },
+  { name:"Ice Age National Scenic Trail", state:"WI", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:43.9895697794, lng:-89.5612021706, desc:"The Ice Age National Scenic Trail spans 1,200 miles, traverses some of Wisconsin's finest geologic and glacial features, and passes through the..." },
+  { name:"Independence National Historical Park", state:"PA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.94746112, lng:-75.14794157, desc:"The park represents the founding ideals of the nation, and preserves national and international symbols of freedom and democracy, including..." },
+  { name:"James A Garfield National Historic Site", state:"OH", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:41.66486549, lng:-81.35086557, desc:"A front porch can serve many purposes. For some, it is a place to enjoy the breeze on a warm summer night. For others, a perch from which to keep..." },
+  { name:"Jean Lafitte National Historical Park and Preserve", state:"LA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:29.81739855, lng:-90.1402241, desc:"In Jean Lafitte's day, silver and gold filled a pirate's treasure chest, but today's treasures are people, places, and memories. Discover New..." },
+  { name:"Jewel Cave National Monument", state:"SD", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:43.73102945, lng:-103.829994, desc:"Immerse yourself in one of the longest caves in the world. With over 220 miles of mapped and surveyed passages, this underground wilderness appeals..." },
+  { name:"Jimmy Carter National Historical Park", state:"GA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:32.03611, lng:-84.3924, desc:"Few U.S. Presidents have had such close ties with where they were born and raised. The rural southern culture of Plains, Georgia revolves around..." },
+  { name:"John Day Fossil Beds National Monument", state:"OR", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:44.62566508, lng:-119.8811491, desc:"Large rhino-like brontotheres roam a semitropical forest. Dog-sized, three-toed horses dart between the trees. The cat-like nimravid and bear dogs..." },
+  { name:"John Fitzgerald Kennedy National Historic Site", state:"MA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.34693694, lng:-71.12323846, desc:"JFK’s parents never expected that their second son would grow up to be president. Yet in his birthplace home he learned values that inspired a life..." },
+  { name:"John Muir National Historic Site", state:"CA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.9828422, lng:-122.1326097, desc:"John Muir’s life was a tapestry of roles—fruit rancher, family man, writer—each interwoven with his deep love for nature. As one of America’s most..." },
+  { name:"Johnstown Flood National Memorial", state:"PA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.34584534, lng:-78.77448601, desc:"The South Fork Dam failed on Friday, May 31, 1889, and unleashed 20,000,000 tons of water that devastated Johnstown, PA. The flood killed 2,209..." },
+  { name:"Juan Bautista de Anza National Historic Trail", state:"AZ", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:33.8743390994, lng:-117.224179857, desc:"The Juan Bautista de Anza National Historic Trail covers over 1200 miles through the homelands of 70+ Tribal communities. It follows the historic..." },
+  { name:"Katahdin Woods and Waters National Monument", state:"ME", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:45.9567565918, lng:-68.7122879028, desc:"Spread across a wild landscape offering spectacular views of Katahdin, Katahdin Woods and Waters invites discovery of its rivers, streams, woods,..." },
+  { name:"Kenilworth Park & Aquatic Gardens", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.9128, lng:-76.9434, desc:"Deep within Kenilworth lies an oasis, hidden behind trees and cattails. It's a place where beavers build their homes and turtles sleep on logs. Lotus..." },
+  { name:"Keweenaw National Historical Park", state:"MI", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:47.1792308, lng:-88.52275344, desc:"The stories of people and copper in the Keweenaw Peninsula have been intertwined for more than 7,000 years. Indigenous peoples made copper into tools..." },
+  { name:"Kings Mountain National Military Park", state:"SC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.13900723, lng:-81.38978712, desc:"Thomas Jefferson called it \"The turn of the tide of success.\" The battle of Kings Mountain, fought October 7th, 1780, was an important American..." },
+  { name:"Klondike Gold Rush - Seattle Unit National Historical Park", state:"WA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:47.5993663, lng:-122.3319664, desc:"Seattle flourished during and after the Klondike Gold Rush. Merchants supplied people from around the world passing through this port city on their..." },
+  { name:"Knife River Indian Villages National Historic Site", state:"ND", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:47.3540219, lng:-101.3860533, desc:"Earthlodge people hunted bison and other game, but were in essence farmers living in villages along the Missouri and its tributaries. The site was a..." },
+  { name:"Korean War Veterans Memorial", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.88784226, lng:-77.04773857, desc:"At the Korean War Veterans Memorial, \"Our nation honors her sons and daughters who answered the call to defend a country they never knew and a..." },
+  { name:"LBJ Memorial Grove on the Potomac", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.87858036, lng:-77.05145832, desc:"From this distance the seat of national power appears pristine across the river, so President Johnson came here often when he needed to escape from..." },
+  { name:"Lake Meredith National Recreation Area", state:"TX", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.61926203, lng:-101.6820066, desc:"Set within the wide‑open Texas Plains, Lake Meredith National Recreation Area offers a peaceful retreat in the heart of rugged grasslands. Over..." },
+  { name:"Lake Roosevelt National Recreation Area", state:"WA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:48.17148735, lng:-118.3513713, desc:"The ancient geologic landscape of the upper Columbia River cradles Lake Roosevelt in walls of stone carved by massive ice age floods. Come explore..." },
+  { name:"Lewis & Clark National Historic Trail", state:"IA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:41.2646141052, lng:-95.9245147705, desc:"The Lewis and Clark National Historic Trail winds nearly 4,900 miles through the homelands of more than 60 Tribal nations. It follows the historic..." },
+  { name:"Lincoln Boyhood National Memorial", state:"IN", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.11817004, lng:-86.99656861, desc:"Abraham Lincoln grew from youth to manhood on this southern Indiana soil. Many character and moral traits of one of the world's most respected..." },
+  { name:"Lincoln Home National Historic Site", state:"IL", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.79715642, lng:-89.64513397, desc:"Abraham Lincoln believed in the ideal that everyone in America should have the opportunity to improve their economic and social condition. Lincoln’s..." },
+  { name:"Lincoln Memorial", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.88927229, lng:-77.05017778, desc:"\"...as in the hearts of the people for whom he saved the Union, the memory of Abraham Lincoln is enshrined forever.\" Beneath these words, the 16th..." },
+  { name:"Little Rock Central High School National Historic Site", state:"AR", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:34.7369465, lng:-92.29987899, desc:"In 1957, Little Rock Central High School was the epicenter of confrontation and a catalyst for change as the fundamental test for the United States..." },
+  { name:"Longfellow House Washington's Headquarters National Historic Site", state:"MA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.37698854, lng:-71.12636956, desc:"Longfellow House-Washington's Headquarters National Historic Site preserves a remarkable Georgian house whose occupants shaped our nation. It was a..." },
+  { name:"Lowell National Historical Park", state:"MA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.6455371, lng:-71.31588673, desc:"Lowell’s water-powered textile mills catapulted the nation – including immigrant families and early female factory workers – into an uncertain new..." },
+  { name:"Lower Delaware National Wild and Scenic River", state:"PA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.4000389, lng:-74.983737, desc:"The Delaware River, the largest free-flowing river in the eastern United States, runs past forests, farmlands and villages. It also links some of the..." },
+  { name:"Lower East Side Tenement Museum National Historic Site", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.7187683, lng:-73.99001245, desc:"The Tenement Museum tells the stories of working-class tenement residents, who moved to New York City from other countries and other parts of the..." },
+  { name:"Lyndon B Johnson National Historical Park", state:"TX", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:30.2519655, lng:-98.60692433, desc:"Lyndon B. Johnson National Historical Park tells the story of our 36th president beginning with his ancestors until his final resting place on his..." },
+  { name:"Maggie L Walker National Historic Site", state:"VA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.54781499, lng:-77.43746979, desc:"Maggie Lena Walker devoted her life to civil rights advancement, economic empowerment, and educational opportunities for Jim Crow-era African..." },
+  { name:"Maine Acadian Culture", state:"ME", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:47.25102114, lng:-68.59447532, desc:"Maine Acadians share beliefs and experiences tying them to a common religion, languages, and history. The St. John River, land, and family are..." },
+  { name:"Mammoth Cave National Park", state:"KY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.19760458, lng:-86.13090198, desc:"Rolling hills, deep river valleys, and the world's longest known cave system. Mammoth Cave National Park is home to thousands of years of human..." },
+  { name:"Manassas National Battlefield Park", state:"VA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.81710063, lng:-77.5353468, desc:"On July 21, 1861, two armies clashed for the first time on the fields overlooking Bull Run. Heavy fighting swept away any notion of a quick war. In..." },
+  { name:"Manhattan Project National Historical Park", state:"NM", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.88096, lng:-106.30214, desc:"The Manhattan Project is one of the most transformative events of the 20th century. It ushered in the nuclear age with the development of the world’s..." },
+  { name:"Manzanar National Historic Site", state:"CA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:36.72559195, lng:-118.1547177, desc:"In 1942, the United States government ordered more than 110,000 men, women, and children to leave their homes and detained them in remote,..." },
+  { name:"Marsh - Billings - Rockefeller National Historical Park", state:"VT", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:43.63348732, lng:-72.53424638, desc:"Walk through one of Vermont's most beautiful landscapes under the shade of the Mount Tom Forest, the oldest continuously managed scientific forest in..." },
+  { name:"Martin Luther King, Jr. Memorial", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.8862276865, lng:-77.0442195534, desc:"Located in downtown Washington, DC, the memorial honors Martin Luther King, Jr.'s legacy and the struggle for freedom, equality, and justice. A..." },
+  { name:"Martin Luther King, Jr. National Historical Park", state:"GA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:33.75618241, lng:-84.37256768, desc:"Welcome to Martin Luther King, Jr. National Historical Park & Preservation District where a young boy grows up in a time of segregation. He was moved..." },
+  { name:"Martin Van Buren National Historic Site", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.36819596, lng:-73.70834257, desc:"Born in Kinderhook, New York, in 1782, Martin Van Buren was the first president born a US citizen. His life spanned the American Revolution to the..." },
+  { name:"Mary McLeod Bethune Council House National Historic Site", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.90819107, lng:-77.03096742, desc:"Mary McLeod Bethune achieved her greatest recognition at the Washington, DC townhouse that is now this National Historic Site. The Council House was..." },
+  { name:"Medgar and Myrlie Evers Home National Monument", state:"MS", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:32.34096274, lng:-90.21264553, desc:"Medgar and Myrlie Evers were partners in the civil rights struggle. The assassination of Medgar Evers in the carport of their home on June 12, 1963,..." },
+  { name:"Mill Springs Battlefield National Monument", state:"KY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.0688158602, lng:-84.7375361304, desc:"The US won a significant victory early in the Civil War at the Battle of Mill Springs. Explore the rolling fields of Kentucky where the battle took..." },
+  { name:"Minidoka National Historic Site", state:"ID", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.678, lng:-114.2465, desc:"During World War II, over 120,000 people of Japanese ancestry were forcibly removed from their homes and incarcerated without due process of law...." },
+  { name:"Minute Man National Historical Park", state:"MA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.4562778, lng:-71.30738884, desc:"At Minute Man National Historical Park the opening battle of the Revolution is brought to life as visitors explore the battlefields and structures..." },
+  { name:"Minuteman Missile National Historic Site", state:"SD", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:43.89558013, lng:-102.0272131, desc:"During the Cold War, a vast arsenal of nuclear missiles were placed in the Great Plains. Hidden in plain sight, for thirty years 1,000 missiles were..." },
+  { name:"Mississippi National River & Recreation Area", state:"MN", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:44.942487, lng:-93.098712, desc:"In the middle of a bustling urban setting, this 72 mile river park offers quiet stretches for fishing, boating and canoeing, birdwatching, bicycling,..." },
+  { name:"Missouri National Recreational River", state:"SD", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.7882189, lng:-97.59077822, desc:"Imagine a 100-mile stretch of North America's longest river, a vestige of the untamed American West. The Missouri National Recreational River is..." },
+  { name:"Mojave National Preserve", state:"CA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.12485941, lng:-115.5168258, desc:"Mojave preserves a diverse mosaic of ecological habitats and a 10,000 year history of human connection with the desert. Offering extensive..." },
+  { name:"Monocacy National Battlefield", state:"MD", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.36084236, lng:-77.39637677, desc:"During the summer of 1864, the Confederacy carried out a bold plan to turn the tide of the Civil War in their favor. They planned to capture..." },
+  { name:"Moores Creek National Battlefield", state:"NC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:34.45820776, lng:-78.11031134, desc:"In the early morning hours of February 27, 1776, Loyalist forces charged across a partially dismantled Moores Creek Bridge. Beyond the bridge, nearly..." },
+  { name:"Mormon Pioneer National Historic Trail", state:"IL", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:41.2650321741, lng:-101.84083756, desc:"Explore the Mormon Pioneer National Historic Trail across five states to see the 1,300-mile route traveled by Mormons who fled Nauvoo, Illinois, to..." },
+  { name:"Morristown National Historical Park", state:"NJ", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.7650755, lng:-74.53455122, desc:"Morristown National Historical Park commemorates the sites of General Washington and the Continental Army’s winter encampment from December 1779 to..." },
+  { name:"Mount Rushmore National Memorial", state:"SD", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:43.88037021, lng:-103.4525186, desc:"Majestic figures of George Washington, Thomas Jefferson, Theodore Roosevelt and Abraham Lincoln, surrounded by the beauty of the Black Hills of South..." },
+  { name:"Natchez National Historical Park", state:"MS", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:31.54697621, lng:-91.39040665, desc:"Discover the history of all the peoples of Natchez, Mississippi, from European settlement, African enslavement, the American cotton economy, to the..." },
+  { name:"Natchez Trace National Scenic Trail", state:"AL", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:34.330290333, lng:-88.7100104094, desc:"The Natchez Trace National Scenic Trail is five sections of hiking trail running roughly parallel to the 444-mile long Natchez Trace Parkway scenic..." },
+  { name:"Natchez Trace Parkway", state:"AL", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:33.78002293, lng:-89.03092439, desc:"The Natchez Trace Parkway is a 444-mile recreational road and scenic drive through three states. It roughly follows the \"Old Natchez Trace,\" a..." },
+  { name:"National Capital Parks-East", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.8659, lng:-76.994, desc:"National Capital Parks — East invites you to explore more than 8,000 acres of scenic parkland, historic landmarks, and vibrant community spaces..." },
+  { name:"National Mall and Memorial Parks", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.8899, lng:-77.026, desc:"This is where the nation comes to remember and where history is made. As “America’s Front Yard,” the National Mall and Memorial Parks is home to many..." },
+  { name:"National Parks of New York Harbor", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.6632, lng:-74.0451, desc:"These 12 sites preserve more than 400 years of American history! We invite you to explore the past and investigate its relevance in our lives today...." },
+  { name:"Navajo National Monument", state:"AZ", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:36.71755643, lng:-110.5504015, desc:"For centuries, the Hopi, San Juan Southern Paiute, Zuni, and Navajo people have lived in the canyons. Springs fed farmlands on the canyon floor and..." },
+  { name:"New Bedford Whaling National Historical Park", state:"MA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:41.63540552, lng:-70.92322321, desc:"\"The town itself is perhaps the dearest place to live in, in all New England..nowhere in all America will you find more patrician-like houses, parks..." },
+  { name:"New England National Scenic Trail", state:"MA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.2915819137, lng:-72.5242767334, desc:"From the Sound to the summits: the New England Trail covers 235 miles from Long Island Sound across long ridges to scenic mountain summits in..." },
+  { name:"New Jersey Pinelands National Reserve", state:"NJ", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.9384, lng:-74.625, desc:"This is truly a special place. It's classified as a United States Biosphere Reserve and in 1978 was established by Congress as the country’s first..." },
+  { name:"New Orleans Jazz National Historical Park", state:"LA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:29.96303129, lng:-90.06749669, desc:"Discover the roots of jazz at the New Orleans Jazz National Historical Park. Located in the heart of the French Quarter, our park offers live..." },
+  { name:"New Philadelphia National Historic Site", state:"IL", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.69803, lng:-90.96131, desc:"To a casual observer, New Philadelphia looked like a typical Illinois pioneer town. But a closer look revealed a unique and racially diverse..." },
+  { name:"New River Gorge National Park & Preserve", state:"WV", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.86878554, lng:-80.99956002, desc:"A rugged, whitewater river flowing northward through deep canyons, the New River is among the oldest rivers on the continent. The park encompasses..." },
+  { name:"Nez Perce National Historical Park", state:"ID", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:46.07019093, lng:-115.8761258, desc:"Since time immemorial, the valleys, prairies, mountains, and plateaus of the inland northwest have been home to the nimíipuu (Nez Perce) people...." },
+  { name:"Nicodemus National Historic Site", state:"KS", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.39167606, lng:-99.61680329, desc:"Formerly enslaved African Americans left Kentucky at the end of the post-Civil War Reconstruction period to experience freedom in the \"Promised..." },
+  { name:"Ninety Six National Historic Site", state:"SC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:34.14273587, lng:-82.01636079, desc:"Settlers struggled against the harsh backcountry to survive. Cherokee Indians hunted and fought to keep their land. Two towns and a trading post were..." },
+  { name:"Niobrara National Scenic River", state:"NE", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.79413083, lng:-99.91870646, desc:"With a little something for everyone, the Niobrara National Scenic River is a destination for crossing adventures off your bucket list. Most popular..." },
+  { name:"North Cascades National Park", state:"WA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:48.71171756, lng:-121.2069423, desc:"Less than three hours from Seattle, an alpine landscape beckons. Discover communities of life adapted to moisture in the west and recurring fire in..." },
+  { name:"North Country National Scenic Trail", state:"MI", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:46.334400743, lng:-90.8165630499, desc:"Come to the North Country. Trek the hills and valleys. Stand on the shores of lakes & streams from glaciers 10,000 years before. Clear-flowing water,..." },
+  { name:"Obed Wild & Scenic River", state:"TN", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:36.1056026037, lng:-84.5979170501, desc:"The Obed Wild and Scenic River looks much the same today as it did when the first white settlers strolled its banks in the late 1700s. While meagerly..." },
+  { name:"Ocmulgee Mounds National Historical Park", state:"GA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:32.83816576, lng:-83.60224853, desc:"Welcome to Ocmulgee Mounds National Historical Park. This park is a prehistoric American Indian site, where many different American Indian cultures..." },
+  { name:"Oklahoma City National Memorial", state:"OK", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.473, lng:-97.5171, desc:"The outdoor symbolic memorial is a place of quiet reflection, honoring victims, survivors, rescuers, and all who were changed forever on April 19,..." },
+  { name:"Old Spanish National Historic Trail", state:"AZ", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.0791782514, lng:-112.114693431, desc:"Follow the routes of mule pack trains across the Southwest on the Old Spanish National Historic Trail between Santa Fe, New Mexico, and Los Angeles,..." },
+  { name:"Oregon Caves National Monument & Preserve", state:"OR", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.10319143, lng:-123.4018586, desc:"Deep within the Siskiyou Mountains are dark, twisting passages that await your discovery. Eons of acidic water seeping into marble rock created and..." },
+  { name:"Oregon National Historic Trail", state:"ID", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:41.9876977831, lng:-109.634200841, desc:"Imagine yourself an emigrant headed for Oregon: would promises of lush farmlands and a new beginning lure you to leave home and walk for weeks? More..." },
+  { name:"Overmountain Victory National Historic Trail", state:"NC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.14044, lng:-81.377, desc:"Stretching 330-miles through four states (Virginia, Tennessee, North and South Carolina) the Overmountain Victory National Historic Trail traces the..." },
+  { name:"Oxon Cove Park & Oxon Hill Farm", state:"MD", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.80578214, lng:-77.01131457, desc:"The diverse history of Maryland and our national heritage can be experienced at Oxon Cove Park. Through hands-on programs and other activities, you..." },
+  { name:"Ozark National Scenic Riverways", state:"MO", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.13968894, lng:-91.25709817, desc:"Ozark National Scenic Riverways is the first national park area to protect a river system. The Current and Jacks Fork rivers are two of the finest..." },
+  { name:"Palo Alto Battlefield National Historical Park", state:"TX", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:26.02387351, lng:-97.46296072, desc:"On May 8, 1846, U.S. and Mexican troops clashed on the prairie of Palo Alto. The battle was the first in a two-year long war that changed the map of..." },
+  { name:"Paterson Great Falls National Historical Park", state:"NJ", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.91584645, lng:-74.18021494, desc:"Silk cloth and steam locomotives; textiles and continuous paper rolls; firearms and aircraft engines. What do these things have in common? All were..." },
+  { name:"Pea Ridge National Military Park", state:"AR", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:36.45438033, lng:-94.03468357, desc:"On March 7-8, 1862, over 23,000 soldiers fought here to decide the fate of Missouri which was a turning point of the war in the Trans-Mississippi...." },
+  { name:"Pecos National Historical Park", state:"NM", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.54192238, lng:-105.6814684, desc:"Pecos is a natural and cultural crossroads through which hunters, gatherers, traders, missionaries, immigrants, soldiers, ranchers, and other..." },
+  { name:"Pennsylvania Avenue", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.89426856, lng:-77.02506554, desc:"A street unlike any other. It is known the world over as the heart of the Nation's Capital. America's history has marched, paraded, promenaded, and..." },
+  { name:"Petersburg National Battlefield", state:"VA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.19109957, lng:-77.47594865, desc:"Two hundred ninety-two days, eight offensives, over 70,000 casualties, U. S. Colored Troops, and the decline of Gen. Lee's Army of Northern Virginia..." },
+  { name:"Petroglyph National Monument", state:"NM", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.13915998, lng:-106.7491456, desc:"Petroglyph National Monument protects one of the largest petroglyph sites in North America, featuring designs and symbols carved onto volcanic rocks..." },
+  { name:"Pipestone National Monument", state:"MN", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:44.01351958, lng:-96.32475523, desc:"For over 3,000 years, Indigenous people have quarried the red stone at this site to make pipes used in prayer and ceremony - a tradition that..." },
+  { name:"Piscataway Park", state:"MD", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.6929, lng:-77.067, desc:"Piscataway Park is home to bald eagles, beavers, deer, foxes, ospreys, and many other species. To complement the surroundings, the park has, in..." },
+  { name:"Point Reyes National Seashore", state:"CA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.05511241, lng:-122.8797804, desc:"From its thunderous ocean breakers crashing against rocky headlands and expansive sand beaches to its open grasslands, brushy hillsides, and forested..." },
+  { name:"Pony Express National Historic Trail", state:"CA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.2365761128, lng:-109.266148417, desc:"It is hard to believe that young men once rode horses to carry mail from Missouri to California in the unprecedented time of only 10 days. This relay..." },
+  { name:"Port Chicago Naval Magazine National Memorial", state:"CA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.05685472, lng:-122.0301603, desc:"On July 17, 1944, a massive explosion jolted the San Francisco East Bay area, shattering windows and lighting up the night sky. At Port Chicago Naval..." },
+  { name:"Potomac Heritage National Scenic Trail", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.15060133, lng:-77.52301085, desc:"The Potomac River corridor is rich in both history and recreation, offering a chance to both explore your heritage and choose your adventure along..." },
+  { name:"Poverty Point National Monument", state:"LA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:32.6424361, lng:-91.40829834, desc:"Now a nearly forgotten culture, Poverty Point at its peak 3,000 years ago was part of an enormous trading network that stretched for hundreds of..." },
+  { name:"President William Jefferson Clinton Birthplace Home National Historic Site", state:"AR", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:33.66758356, lng:-93.59641868, desc:"Named for the father who died shortly before his birth, William Jefferson Blythe III later became the 42nd President of the United States. In Hope,..." },
+  { name:"Presidio of San Francisco", state:"CA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.797, lng:-122.4671, desc:"For 218 years, the Presidio served as an army post for three nations. World and local events, from military campaigns to World Fairs and earthquakes,..." },
+  { name:"Pullman National Historical Park", state:"IL", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:41.69429163, lng:-87.60873824, desc:"In a growing Chicago neighborhood, diverse people and stories intertwined. All were seeking opportunity. Some succeeded. Others were limited—by race,..." },
+  { name:"Rainbow Bridge National Monument", state:"UT", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.0779, lng:-110.9655, desc:"Rainbow Bridge is one of the world's largest known natural bridges. The span has undoubtedly inspired people throughout time--from the neighboring..." },
+  { name:"Reconstruction Era National Historical Park", state:"SC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:32.3868598938, lng:-80.6511077881, desc:"The Reconstruction era,1861-1900 the historic period in which the United States grappled with the question of how to integrate millions of newly..." },
+  { name:"Redwood National and State Parks", state:"CA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:41.37237268, lng:-124.0318129, desc:"Renowned for the world’s tallest trees, Redwood’s landscapes span from open prairies and oak woodlands to pristine rivers and untamed coastline. This..." },
+  { name:"Richmond National Battlefield Park", state:"VA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.48774472, lng:-77.29107785, desc:"The center of Confederate manufacturing fueled a modern war, one of the South’s largest hospitals gave care to the sick and wounded, and armies..." },
+  { name:"River Raisin National Battlefield Park", state:"MI", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:41.91291085, lng:-83.37620464, desc:"River Raisin NBP preserves, commemorates, and interprets the January 1813 battles of the War of 1812 and their aftermath. Battles that resulted in..." },
+  { name:"Rock Creek Park", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.95125063, lng:-77.05002838, desc:"Rock Creek Park is truly a gem in our nation's capital. This 1,754 acre city park was officially authorized in 1890, making it the third national..." },
+  { name:"Roger Williams National Memorial", state:"RI", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:41.8298955, lng:-71.41056665, desc:"\"I acknowledge that to molest any person, Jew or Gentile, for either professing doctrine, or practicing worship meerly religious or spiritual, is to..." },
+  { name:"Roosevelt Campobello International Park", state:"ME", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:44.8736, lng:-66.9621, desc:"For many years, Franklin D. Roosevelt summered on Campobello Island. As an adult, he shared with his family the same active pursuits he enjoyed on..." },
+  { name:"Rosie the Riveter WWII Home Front National Historical Park", state:"CA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.90999027, lng:-122.360156, desc:"Celebrate and honor the contributions and sacrifices of American civilians on the WWII home front. Discover how diverse communities lived, worked,..." },
+  { name:"Russell Cave National Monument", state:"AL", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:34.97402063, lng:-85.81560314, desc:"Russell Cave National Monument is an archeological site with one of the most complete records of prehistoric cultures in the Southeast. In the 1950s,..." },
+  { name:"Sagamore Hill National Historic Site", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.88579128, lng:-73.49686438, desc:"Sagamore Hill was the home of Theodore Roosevelt, 26th President of the United States, from 1885 until his death in 1919. During Roosevelt's time in..." },
+  { name:"Saint Croix Island International Historic Site", state:"ME", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:45.12858838, lng:-67.13363651, desc:"The winter of 1604-1605 on Saint Croix Island was a cruel one for Pierre Dugua's French expedition. Iced in by freezing temperatures and cut off from..." },
+  { name:"Saint Croix National Scenic Riverway", state:"WI", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:45.70019235, lng:-92.36126685, desc:"Grab your paddle and your longing for adventure and head to the St. Croix and Namekagon rivers! Together they form the St. Croix National Scenic..." },
+  { name:"Saint Paul's Church National Historic Site", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.89283511, lng:-73.82577276, desc:"Since 1665, Saint Paul's Church played a vital role in the colonial life of Eastchester, 20 miles north of New York City. Townspeople voted at the..." },
+  { name:"Salem Maritime National Historical Park", state:"MA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.52024529, lng:-70.88640867, desc:"Originally established in 1938 as the first National Historic Site in the United States, Salem Maritime National Historical Park consists of nine..." },
+  { name:"Salinas Pueblo Missions National Monument", state:"NM", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:34.35423203, lng:-106.2050309, desc:"Tucked away in the middle of New Mexico you’ll find Salinas Pueblo Missions National Monument. Its three distinct sites offer a glimpse into a unique..." },
+  { name:"San Antonio Missions National Historical Park", state:"TX", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:29.31262089, lng:-98.4289522, desc:"Welcome to San Antonio Missions, a National Park Service site and the only UNESCO World Heritage Site in Texas. Each mission in the park is a center..." },
+  { name:"San Francisco Maritime National Historical Park", state:"CA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.81005871, lng:-122.4244415, desc:"Established in 1988, San Francisco Maritime National Historical Park celebrates America’s maritime heritage on the Pacific Coast. Our 50-acre park..." },
+  { name:"San Juan Island National Historical Park", state:"WA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:48.51241933, lng:-123.0610277, desc:"San Juan Island is well known for its splendid vistas, saltwater shores, quiet woodlands, orca whales and one of the last remaining native prairies..." },
+  { name:"Sand Creek Massacre National Historic Site", state:"CO", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.56414189, lng:-102.5169542, desc:"On November 29th, 1864, Chiefs Black Kettle, White Antelope, Left Hand and others were encamped with around 750 Arapaho and Cheyenne people in a..." },
+  { name:"Santa Fe National Historic Trail", state:"CO", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.7276522226, lng:-99.921969227, desc:"You can almost hear the whoops and cries of \"All's set!\" as trail hands hitched their oxen to freight wagons carrying cargo between western..." },
+  { name:"Santa Monica Mountains National Recreation Area", state:"CA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:34.09777606, lng:-118.7708619, desc:"The Santa Monica Mountains offer easy access to surprisingly wild places. Experience the famous beaches of Malibu or explore more than 500 miles of..." },
+  { name:"Saratoga National Historical Park", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.99522612, lng:-73.63386108, desc:"In 1777, a large British invasion force met an equally large American army here at Saratoga. After two intense battles, an eight-mile retreat, and a..." },
+  { name:"Saugus Iron Works National Historic Site", state:"MA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.46830664, lng:-71.0076953, desc:"In the 1600's, on the banks of the Saugus River, something extraordinary happened! Explore the place where European iron makers brought their special..." },
+  { name:"Scotts Bluff National Monument", state:"NE", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:41.83464193, lng:-103.7071351, desc:"Towering 800 feet above the North Platte River, Scotts Bluff has served as a landmark for peoples from Native Americans to emigrants on the Oregon,..." },
+  { name:"Selma To Montgomery National Historic Trail", state:"AL", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:32.27082092, lng:-86.72823702, desc:"Established by Congress in 1996, the Selma to Montgomery National Historic Trail commemorates the people, events, and route of the 1965 Voting Rights..." },
+  { name:"Shiloh National Military Park", state:"TN", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.13850907, lng:-88.3421072, desc:"Visit the sites of the most epic struggle in the Western Theater of the Civil War. Nearly 110,000 American troops clashed in a bloody contest that..." },
+  { name:"Springfield 1908 Race Riot National Monument", state:"IL", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.8027, lng:-89.6422, desc:"In August 1908, a large White mob attacked the Black community in Springfield, Illinois. Rioters destroyed homes and businesses and lynched two men...." },
+  { name:"Springfield Armory National Historic Site", state:"MA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.1086368, lng:-72.57967415, desc:"For nearly two centuries, the U.S. Armed Forces and American industry looked to Springfield Armory for innovative engineering and superior firearms...." },
+  { name:"Star-Spangled Banner National Historic Trail", state:"MD", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.2872505188, lng:-76.6034317017, desc:"The Star-Spangled Banner National Historic Trail is a collection of sites impacted by the War of 1812. These local, historic sites tell the story of..." },
+  { name:"Statue Of Liberty National Monument", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.6898, lng:-74.0451, desc:"A gift of friendship from the people of France to the United States \"The Statue of Liberty Enlightening the World\" is recognized as a universal..." },
+  { name:"Ste. Geneviève National Historical Park", state:"MO", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.9792171421, lng:-90.0432157516, desc:"Established by 1750, Ste. Geneviève was the first permanent European settlement in Missouri. Early French Canadian settlers were drawn here by the..." },
+  { name:"Steamtown National Historic Site", state:"PA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:41.40757521, lng:-75.67037255, desc:"Feel the heat from the firebox, smell hot steam and oil; hear the whistle and the \"chuff-chuff\" from the smokestack, feel the ground vibrate, and..." },
+  { name:"Stones River National Battlefield", state:"TN", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.87608652, lng:-86.43078399, desc:"The Battle of Stones River began on the last day of 1862 and became one of the bloodiest conflicts of the Civil War. The battle produced important..." },
+  { name:"Stonewall National Monument", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.7337799072, lng:-74.0006866455, desc:"Before the 1960s, almost everything about living authentically as a lesbian, a bisexual person or a gay man was illegal. The Stonewall Uprising on..." },
+  { name:"Tallgrass Prairie National Preserve", state:"KS", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.44023613, lng:-96.5670822, desc:"Tallgrass prairie once covered 170 million acres of North America, but within a generation most of it had been transformed into farms, cities, and..." },
+  { name:"Thaddeus Kosciuszko National Memorial", state:"PA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.94345312, lng:-75.14732045, desc:"Visit the house where wounded Polish freedom fighter Thaddeus Kosciuszko lived and hear how this brilliant military engineer designed successful..." },
+  { name:"The White House and President's Park", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.89541886, lng:-77.03654147, desc:"The White House is owned by the American people and stewarded by the National Park Service. It is more than the President's residence; it is a site..." },
+  { name:"Theodore Roosevelt Birthplace National Historic Site", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.7386469, lng:-73.98903703, desc:"This is the boyhood home of the first U.S. president to be born in New York City. Raised in a townhouse at 28 E. 20th St., Theodore Roosevelt would..." },
+  { name:"Theodore Roosevelt Inaugural National Historic Site", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.90146781, lng:-78.87248411, desc:"As president, Theodore Roosevelt created protections for ordinary citizens, began regulation of big business, and made the US a major force in..." },
+  { name:"Theodore Roosevelt Island", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.89584162, lng:-77.06241918, desc:"In the 1930s, landscape architects transformed Mason’s Island from neglected, overgrown farmland into Theodore Roosevelt Island, a memorial to..." },
+  { name:"Thomas Cole National Historic Site", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.22570607, lng:-73.86154864, desc:"In 1825, America was still a new nation, just forming its own unique identity and traditions. Thomas Cole invented a new style of art, one that..." },
+  { name:"Thomas Jefferson Memorial", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.88101431, lng:-77.03632572, desc:"Author of the Declaration of Independence, statesman and visionary for the founding of a nation." },
+  { name:"Thomas Stone National Historic Site", state:"MD", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.52934443, lng:-77.037813, desc:"In 1776, Thomas Stone and 55 others signed the Declaration of Independence. In doing so, Stone risked his home, his family's security, and even his..." },
+  { name:"Timpanogos Cave National Monument", state:"UT", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.44039719, lng:-111.7093944, desc:"The visitor center, caves, and cave tours have not yet opened for the 2026 season. Hike your way past stunning vistas to explore a hidden underground..." },
+  { name:"Timucuan Ecological & Historic Preserve", state:"FL", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:30.47251894, lng:-81.49950104, desc:"Visit one of the last unspoiled coastal wetlands on the Atlantic Coast. Discover 6,000 years of human history and experience the beauty of salt..." },
+  { name:"Touro Synagogue National Historic Site", state:"RI", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:41.4893, lng:-71.3121, desc:"Touro Synagogue, a building of exquisite beauty and design, steeped in history and ideals, and one of the most historically significant Jewish..." },
+  { name:"Trail Of Tears National Historic Trail", state:"AL", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:36.0530021046, lng:-89.6761041963, desc:"Remember and commemorate the survival of the Cherokee people, forcefully removed from their homelands in Georgia, Alabama, and Tennessee to live in..." },
+  { name:"Tule Lake National Monument", state:"CA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:41.88727902, lng:-121.3744818, desc:"Tule Lake National Monument includes both Tule Lake Segregation Center, the largest and most controversial of the sites where Japanese Americans were..." },
+  { name:"Tule Springs Fossil Beds National Monument", state:"NV", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:36.3893217, lng:-115.3202223, desc:"Over the last ~570,000 years, water has transformed the Upper Las Vegas Valley. Tule Springs Fossil Beds National Monument is an urban park that..." },
+  { name:"Tupelo National Battlefield", state:"MS", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:34.25557705, lng:-88.73708623, desc:"In July, 1864, federal forces, including men from the United States Colored Troops, marched into Tupelo, Mississippi. Disorganized Confederate..." },
+  { name:"Tuskegee Airmen National Historic Site", state:"AL", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:32.45538671, lng:-85.67983321, desc:"Before the first African American military pilots became known as the \"Red Tails\" they wore striped tails as they began their flight training in..." },
+  { name:"Tuskegee Institute National Historic Site", state:"AL", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:32.42962115, lng:-85.70488498, desc:"In 1881, Booker T. Washington arrived in Alabama and started building Tuskegee Institute both in reputation and literally brick by brick. He..." },
+  { name:"Ulysses S Grant National Historic Site", state:"MO", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.55182374, lng:-90.35169255, desc:"Ulysses S. Grant is known as the victorious Civil War general who saved the Union and the 18th President of the United States. He first met Julia..." },
+  { name:"Upper Delaware Scenic & Recreational River", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:41.66172578, lng:-75.03861562, desc:"Canoe through rapids and quiet pools as the Delaware River winds its way through a valley of swiftly changing scenery or fish amid rolling hills and..." },
+  { name:"Valley Forge National Historical Park", state:"PA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.10054985, lng:-75.44581889, desc:"Valley Forge is the place where George Washington and the Continental Army took refuge during the winter of 1777-1778. Today the park protects 3,500..." },
+  { name:"Vietnam Veterans Memorial", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.89096297, lng:-77.04765735, desc:"Honoring the men and women who served in the controversial Vietnam War, the Vietnam Veterans Memorial chronologically lists the names of 58,318..." },
+  { name:"Voyageurs National Park", state:"MN", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:48.48370609, lng:-92.8382913, desc:"Voyageurs National Park spans 218,000 acres of lakes, forests, and streams in northern Minnesota. Established in 1975, the park is named after the..." },
+  { name:"Waco Mammoth National Monument", state:"TX", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:31.60465887, lng:-97.17606143, desc:"Standing as tall as 14 feet and weighing 20,000 pounds, Columbian mammoths roamed across what is present-day Texas thousands of years ago. Today, the..." },
+  { name:"Washington Monument", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.88948, lng:-77.035207, desc:"Built to honor George Washington, the United States' first president, the 555-foot marble obelisk towers over Washington, D.C." },
+  { name:"Washington-Rochambeau Revolutionary Route National Historic Trail", state:"MA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:40.0958204557, lng:-74.8563515109, desc:"“Of the happiness I have enjoyed in our private friendship. The remembrance of which will be one of the most pleasing Circumstances of my life.”–..." },
+  { name:"Washita Battlefield National Historic Site", state:"OK", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:35.62083963, lng:-99.70445143, desc:"On November 27, 1868, Lt. Colonel George Armstrong Custer led the 7th US Cavalry on a surprise dawn attack on a Cheyenne village led by Peace Chief..." },
+  { name:"Weir Farm National Historical Park", state:"CT", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:41.25886268, lng:-73.45452542, desc:"Visit the home and studio of America's most beloved Impressionist, J. Alden Weir, and walk in the footsteps of generations of world-class artists...." },
+  { name:"Whitman Mission National Historic Site", state:"WA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:46.04119286, lng:-118.4629388, desc:"One moment can change the fate of many nations. After thousands of years of habitation by the Cayuse Nation, life in the Columbia River Plateau..." },
+  { name:"William Howard Taft National Historic Site", state:"OH", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:39.11970352, lng:-84.50758951, desc:"High atop one of Cincinnati's most prominent hilltops stands the two-story Greek Revival house where William Howard Taft was born and grew up. Hard..." },
+  { name:"Wilson's Creek National Battlefield", state:"MO", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.1000127, lng:-93.40986704, desc:"Wilson's Creek was the first major Civil War battle fought west of the Mississippi River, and where the first Union general was killed in action. The..." },
+  { name:"Wind Cave National Park", state:"SD", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:43.58012365, lng:-103.4394709, desc:"Wind Cave National Park protects two very different worlds - one deep within the earth, the other a sunlit world of many resources. Bison, elk, and..." },
+  { name:"Wing Luke Museum Affiliated Area", state:"WA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:47.59820859, lng:-122.3228912, desc:"More than a museum, the Wing is an experience. A chance to truly understand what it was - and is - to be Asian American in the Pacific Northwest...." },
+  { name:"Wolf Trap National Park for the Performing Arts", state:"VA", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.93854526, lng:-77.265089, desc:"No matter what your age or taste in shows, you'll find something you like onstage at Wolf Trap National Park for the Performing Arts. From May..." },
+  { name:"Women's Rights National Historical Park", state:"NY", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:42.90817073, lng:-76.81655558, desc:"Women’s Rights National Historical Park tells the story of the first Women’s Rights Convention, held in Seneca Falls, New York on July 19-20, 1848...." },
+  { name:"World War I Memorial", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.8959, lng:-77.0329, desc:"A grateful nation honors the service, valor, courage and sacrifice of the 4.7 million American sons and daughters who served in the Great War." },
+  { name:"World War II Memorial", state:"DC", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:38.88923917, lng:-77.0403759, desc:"Through stone architecture and bronze sculptures, the World War II Memorial recognizes the ways Americans served, honors those who fell, and..." },
+  { name:"Yucca House National Monument", state:"CO", vehicle_fee:"Free", person_fee:"Free", agency:"nps-free", lat:37.24778944, lng:-108.6861274, desc:"Yucca House National Monument preserves a large unexcavated pueblo with a stunning setting in Montezuma Valley, nestled between Mesa Verde and Ute..." },
+];
+
+// Enrich sites with computed fields
+sites.forEach((s, i) => {
+  s.id = 'site-' + i;
+  s.agencyLabel = AGENCY_LABELS[s.agency];
+  s.region = getRegion(s.state);
+  s.stateName = STATE_NAMES[s.state] || s.state;
+  // Fee display
+  if (s.agency === 'nps-free') {
+    s.feeDisplay = 'Free';
+  } else {
+    const fees = [];
+    if (s.vehicle_fee) fees.push(s.vehicle_fee + '/vehicle');
+    if (s.person_fee) fees.push(s.person_fee + '/person');
+    s.feeDisplay = fees.join(' · ') || 'Fee varies';
+  }
+});
+
+// Sort by name
+sites.sort((a, b) => a.name.localeCompare(b.name));
+
+// ===== MAP INITIALIZATION =====
+let map;
+let individualMarkers = [];
+let activePopup = null;
+let activeSiteId = null;
+
+function getTheme() {
+  return document.documentElement.getAttribute('data-theme') ||
+    (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+}
+
+function getMapStyle() {
+  return getTheme() === 'dark'
+    ? 'https://tiles.openfreemap.org/styles/positron'
+    : 'https://tiles.openfreemap.org/styles/bright';
+}
+
+function getAgencyColor(agency) {
+  const theme = getTheme();
+  const colors = {
+    light: { nps: '#2d6a4f', 'nps-free': '#588157', usfws: '#d4870e', usfs: '#6b705c', blm: '#8b4513' },
+    dark:  { nps: '#52b788', 'nps-free': '#74c69d', usfws: '#e8a838', usfs: '#8a8f7d', blm: '#c47a3c' }
+  };
+  return (colors[theme] || colors.light)[agency] || '#666';
+}
+
+function buildGeoJSON(sitesToShow) {
+  return {
+    type: 'FeatureCollection',
+    features: sitesToShow.map(s => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [s.lng, s.lat] },
+      properties: {
+        id: s.id,
+        name: s.name,
+        agency: s.agency,
+        agencyLabel: s.agencyLabel,
+        state: s.state,
+        stateName: s.stateName,
+        feeDisplay: s.feeDisplay,
+        vehicle_fee: s.vehicle_fee,
+        person_fee: s.person_fee,
+        desc: s.desc,
+        region: s.region
+      }
+    }))
+  };
+}
+
+function addClusterSource(sitesToShow) {
+  // Remove existing
+  if (map.getLayer('cluster-count')) map.removeLayer('cluster-count');
+  if (map.getLayer('clusters')) map.removeLayer('clusters');
+  if (map.getLayer('unclustered-bg')) map.removeLayer('unclustered-bg');
+  if (map.getSource('sites')) map.removeSource('sites');
+
+  // Remove individual markers
+  individualMarkers.forEach(m => m.marker.remove());
+  individualMarkers = [];
+
+  const geojson = buildGeoJSON(sitesToShow);
+
+  map.addSource('sites', {
+    type: 'geojson',
+    data: geojson,
+    cluster: true,
+    clusterMaxZoom: 10,
+    clusterRadius: 50
+  });
+
+  const isDark = getTheme() === 'dark';
+
+  // Cluster circles
+  map.addLayer({
+    id: 'clusters',
+    type: 'circle',
+    source: 'sites',
+    filter: ['has', 'point_count'],
+    paint: {
+      'circle-color': isDark ? '#52b788' : '#2d6a4f',
+      'circle-radius': ['step', ['get', 'point_count'], 18, 10, 24, 30, 32],
+      'circle-stroke-width': 3,
+      'circle-stroke-color': isDark ? '#1c2318' : '#ffffff',
+      'circle-opacity': 0.9
+    }
+  });
+
+  // Cluster count labels
+  map.addLayer({
+    id: 'cluster-count',
+    type: 'symbol',
+    source: 'sites',
+    filter: ['has', 'point_count'],
+    layout: {
+      'text-field': '{point_count_abbreviated}',
+      'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+      'text-size': 13
+    },
+    paint: {
+      'text-color': '#ffffff'
+    }
+  });
+
+  // Invisible circles for unclustered points (for click detection)
+  map.addLayer({
+    id: 'unclustered-bg',
+    type: 'circle',
+    source: 'sites',
+    filter: ['!', ['has', 'point_count']],
+    paint: {
+      'circle-radius': 0,
+      'circle-opacity': 0
+    }
+  });
+
+  // Add HTML markers for unclustered points
+  function updateMarkers() {
+    const features = map.querySourceFeatures('sites');
+    const newMarkerIds = new Set();
+    const zoom = map.getZoom();
+
+    // Only show individual markers when zoom is enough to uncluster
+    features.forEach(feature => {
+      if (feature.properties.cluster) return;
+      const id = feature.properties.id;
+      newMarkerIds.add(id);
+
+      // Check if marker already exists
+      if (individualMarkers.find(m => m.id === id)) return;
+
+      const site = sites.find(s => s.id === id);
+      if (!site) return;
+
+      const el = document.createElement('div');
+      el.className = `custom-marker marker-${site.agency}`;
+      el.innerHTML = getMarkerIcon(site.agency);
+      el.title = site.name;
+      if (activeSiteId === site.id) el.classList.add('active-marker');
+
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat([site.lng, site.lat])
+        .addTo(map);
+
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        map.flyTo({ center: [site.lng, site.lat], zoom: Math.max(map.getZoom(), 10), duration: 600 });
+        showPopup(site);
+        setActiveSite(site.id);
+      });
+
+      individualMarkers.push({ marker, id, element: el, site });
+    });
+
+    // Remove markers that are now clustered
+    individualMarkers = individualMarkers.filter(m => {
+      if (!newMarkerIds.has(m.id)) {
+        m.marker.remove();
+        return false;
+      }
+      return true;
+    });
+  }
+
+  map.on('render', updateMarkers);
+  map.on('moveend', updateMarkers);
+
+  // Click on cluster to zoom in
+  map.on('click', 'clusters', (e) => {
+    const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+    if (!features.length) return;
+    const clusterId = features[0].properties.cluster_id;
+    map.getSource('sites').getClusterExpansionZoom(clusterId, (err, zoom) => {
+      if (err) return;
+      map.easeTo({
+        center: features[0].geometry.coordinates,
+        zoom: zoom,
+        duration: 500
+      });
+    });
+  });
+
+  // Cursor pointer on clusters
+  map.on('mouseenter', 'clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', 'clusters', () => { map.getCanvas().style.cursor = ''; });
+}
+
+function updateMapStyle() {
+  if (!map) return;
+  const center = map.getCenter();
+  const zoom = map.getZoom();
+  map.setStyle(getMapStyle());
+  map.once('style.load', () => {
+    map.jumpTo({ center, zoom });
+    addClusterSource(getVisibleSites());
+  });
+}
+
+function getMarkerIcon(agency) {
+  switch(agency) {
+    case 'nps':
+      return '<svg viewBox="0 0 24 24"><path d="M3 22V8l9-6 9 6v14"/><path d="M9 22V12h6v10"/></svg>';
+    case 'nps-free':
+      return '<svg viewBox="0 0 24 24"><path d="M3 22V8l9-6 9 6v14"/><path d="M9 22V12h6v10"/></svg>';
+    case 'usfws':
+      return '<svg viewBox="0 0 24 24"><path d="M16 7C16 9.21 14.21 11 12 11S8 9.21 8 7"/><path d="M12 3C8 3 4.5 6 3 11c3 2 6 3 9 3s6-1 9-3C19.5 6 16 3 12 3z"/><path d="M12 14v7"/></svg>';
+    case 'usfs':
+      return '<svg viewBox="0 0 24 24"><path d="M12 2L8 9h8L12 2z"/><path d="M12 7L6 17h12L12 7z"/><rect x="10" y="17" width="4" height="5"/></svg>';
+    case 'blm':
+      return '<svg viewBox="0 0 24 24"><path d="M12 22C6.5 22 2 17.5 2 12S6.5 2 12 2s10 4.5 10 10-4.5 10-10 10z"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01M15 9h.01"/></svg>';
+    default:
+      return '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>';
+  }
+}
+
+function showPopup(site) {
+  if (activePopup) activePopup.remove();
+
+  const isFree = site.agency === 'nps-free';
+  const feeRows = [];
+  if (!isFree) {
+    if (site.vehicle_fee) {
+      feeRows.push(`<div class="popup-detail-row"><span class="label">Vehicle</span><span class="value"><s>${site.vehicle_fee}</s></span></div>`);
+    }
+    if (site.person_fee) {
+      feeRows.push(`<div class="popup-detail-row"><span class="label">Per Person</span><span class="value"><s>${site.person_fee}</s></span></div>`);
+    }
+  }
+
+  const agencyUrl = AGENCY_URLS[site.agency] || '#';
+  const linkLabel = (site.agency === 'nps' || site.agency === 'nps-free') ? 'Visit NPS Page' : site.agency === 'usfws' ? 'Visit FWS Page' : site.agency === 'usfs' ? 'Visit USFS Page' : 'Visit BLM Page';
+
+  const html = `
+    <div class="popup-title">${site.name}</div>
+    <div class="popup-agency ${site.agency}">${site.agencyLabel}</div>
+    <div class="popup-desc">${site.desc}</div>
+    <div class="popup-details">
+      ${feeRows.join('')}
+      <div class="popup-detail-row">
+        <span class="label">${isFree ? 'Admission' : 'With Pass'}</span>
+        <span class="value saved">${isFree ? 'Always Free' : 'FREE'}</span>
+      </div>
+      <div class="popup-detail-row">
+        <span class="label">State</span>
+        <span class="value">${site.stateName}</span>
+      </div>
+    </div>
+    <a href="${agencyUrl}" target="_blank" rel="noopener noreferrer" class="popup-link">
+      ${linkLabel}
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
+    </a>
+  `;
+
+  activePopup = new maplibregl.Popup({ offset: 20, maxWidth: '300px' })
+    .setLngLat([site.lng, site.lat])
+    .setHTML(html)
+    .addTo(map);
+
+  activePopup.on('close', () => {
+    setActiveSite(null);
+  });
+}
+
+function setActiveSite(id) {
+  activeSiteId = id;
+
+  // Update sidebar cards
+  document.querySelectorAll('.site-card').forEach(card => {
+    card.classList.toggle('active', card.dataset.id === id);
+  });
+
+  // Update markers
+  individualMarkers.forEach(m => {
+    m.element.classList.toggle('active-marker', m.id === id);
+  });
+
+  // Scroll card into view
+  if (id) {
+    const card = document.querySelector(`.site-card[data-id="${id}"]`);
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+// ===== SIDEBAR =====
+function renderSiteList(sitesToShow) {
+  const list = document.getElementById('siteList');
+
+  if (sitesToShow.length === 0) {
+    list.innerHTML = '<div class="no-results"><p>No sites match your filters.</p></div>';
+    return;
+  }
+
+  list.innerHTML = sitesToShow.map(site => `
+    <div class="site-card${activeSiteId === site.id ? ' active' : ''}" data-id="${site.id}">
+      <div class="site-card-top">
+        <h3>${site.name}</h3>
+        <span class="site-badge badge-${site.agency}">${site.agency === 'nps-free' ? 'FREE' : site.agency.toUpperCase()}</span>
+      </div>
+      <div class="site-meta">
+        ${site.agency === 'nps-free'
+          ? `<span class="free">Free admission</span>`
+          : `<span class="fee"><s>${site.feeDisplay}</s></span><span class="free">FREE with pass</span>`
+        }
+        <span class="state-label">${site.stateName}</span>
+      </div>
+    </div>
+  `).join('');
+
+  // Add click handlers
+  list.querySelectorAll('.site-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const site = sites.find(s => s.id === card.dataset.id);
+      if (site) {
+        map.flyTo({ center: [site.lng, site.lat], zoom: 11, duration: 800 });
+        showPopup(site);
+        setActiveSite(site.id);
+
+        // Close sidebar on mobile
+        if (window.innerWidth <= 768) {
+          document.getElementById('sidebar').classList.remove('open');
+        }
+      }
+    });
+  });
+}
+
+function getVisibleSites() {
+  const search = document.getElementById('searchInput').value.toLowerCase().trim();
+  const activeFilter = document.querySelector('.filter-chip.active')?.dataset.filter || 'all';
+  const regionFilter = document.getElementById('regionSelect').value;
+
+  return sites.filter(site => {
+    const matchesSearch = !search ||
+      site.name.toLowerCase().includes(search) ||
+      site.desc.toLowerCase().includes(search) ||
+      site.stateName.toLowerCase().includes(search) ||
+      site.state.toLowerCase().includes(search) ||
+      site.agencyLabel.toLowerCase().includes(search);
+    const matchesFilter = activeFilter === 'all' || site.agency === activeFilter;
+    const matchesRegion = regionFilter === 'all' || site.region === regionFilter;
+    return matchesSearch && matchesFilter && matchesRegion;
+  });
+}
+
+function updateCount(shown, total) {
+  document.getElementById('siteCount').textContent = shown === total
+    ? `${total} federal recreation sites`
+    : `${shown} of ${total} sites`;
+}
+
+function filterAndRender() {
+  const visible = getVisibleSites();
+  renderSiteList(visible);
+  updateCount(visible.length, sites.length);
+
+  // Update map
+  if (map.getSource('sites')) {
+    // Remove old individual markers
+    individualMarkers.forEach(m => m.marker.remove());
+    individualMarkers = [];
+
+    map.getSource('sites').setData(buildGeoJSON(visible));
+  }
+}
+
+// Search
+document.getElementById('searchInput').addEventListener('input', filterAndRender);
+
+// Filter chips
+document.getElementById('filterBar').addEventListener('click', (e) => {
+  const chip = e.target.closest('.filter-chip');
+  if (!chip) return;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  filterAndRender();
+});
+
+// Region filter
+document.getElementById('regionSelect').addEventListener('change', filterAndRender);
+
+// Mobile sidebar toggle
+document.getElementById('sidebarToggle').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.toggle('open');
+});
+
+// Close sidebar when clicking on map (mobile)
+document.getElementById('map').addEventListener('click', (e) => {
+  if (window.innerWidth <= 768 && !e.target.closest('.custom-marker')) {
+    document.getElementById('sidebar').classList.remove('open');
+  }
+});
+
+// ===== INIT =====
+function initMap() {
+  map = new maplibregl.Map({
+    container: 'map',
+    style: getMapStyle(),
+    center: [-98.5, 39.5],
+    zoom: 4,
+    attributionControl: true
+  });
+
+  map.addControl(new maplibregl.NavigationControl(), 'top-right');
+
+  map.on('load', () => {
+    addClusterSource(sites);
+    renderSiteList(sites);
+    updateCount(sites.length, sites.length);
+  });
+}
+
+initMap();
+</script>
+
+<script data-pplx-inline-edit>
+(function(){
+  if(window===window.top)return;
+  function inlineAll(orig,clone){
+    if(orig.nodeType!==1)return;
+    try{
+      var cs=getComputedStyle(orig);
+      var t='';
+      for(var i=0;i<cs.length;i++){t+=cs[i]+':'+cs.getPropertyValue(cs[i])+';';}
+      clone.style.cssText=t;
+    }catch(e){}
+    var oc=orig.children,cc=clone.children;
+    for(var j=0;j<oc.length&&j<cc.length;j++){inlineAll(oc[j],cc[j]);}
+  }
+  function stripExternal(clone){
+    var imgs=clone.querySelectorAll('img');
+    for(var i=0;i<imgs.length;i++){
+      var s=imgs[i].getAttribute('src');
+      if(s&&!s.startsWith('data:'))imgs[i].removeAttribute('src');
+    }
+    var all=clone.querySelectorAll('*');
+    for(var i=0;i<all.length;i++){
+      var st=all[i].style.cssText;
+      if(st&&st.indexOf('url(')>=0){
+        all[i].style.cssText=st.replace(/url\(["']?(?!data:)[^)"']*["']?\)/gi,'none');
+      }
+    }
+  }
+  window.addEventListener('message',function(e){
+    if(!e.data||e.data.type!=='INLINE_EDIT_CAPTURE_REQUEST')return;
+    var scrollX=window.scrollX||window.pageXOffset||0;
+    var scrollY=window.scrollY||window.pageYOffset||0;
+    var w=window.innerWidth,h=window.innerHeight;
+    try{
+      var clone=document.documentElement.cloneNode(true);
+      var rm=clone.querySelectorAll('script,link[rel="stylesheet"],style');
+      for(var i=0;i<rm.length;i++){rm[i].remove();}
+      inlineAll(document.documentElement,clone);
+      stripExternal(clone);
+      var html=new XMLSerializer().serializeToString(clone);
+      var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'">'
+        +'<foreignObject width="100%" height="100%">'
+        +'<div xmlns="http://www.w3.org/1999/xhtml" style="width:'+w+'px;height:'+h+'px;overflow:hidden">'
+        +'<div style="transform:translate(-'+scrollX+'px,-'+scrollY+'px);transform-origin:top left">'
+        +html+'</div></div></foreignObject></svg>';
+      var svgUrl='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+      var img=new Image();
+      img.onload=function(){
+        var c=document.createElement('canvas');c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0);
+        window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:c.toDataURL('image/png'),scrollX:scrollX,scrollY:scrollY},'*');
+      };
+      img.onerror=function(){
+        window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:null,scrollX:scrollX,scrollY:scrollY},'*');
+      };
+      img.src=svgUrl;
+    }catch(err){
+      window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:null,scrollX:scrollX,scrollY:scrollY},'*');
+    }
+  });
+})();
+</script></body>
+</html>
